@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>TWICEZ Zenith</title>
+<style>
+/* ─────────────────────────────────────
+   TOKENS
+───────────────────────────────────── */
+:root{
+  --bg:#06090f;
+  --gold:#d49a37;--gold2:#f5c842;--gold3:#fde68a;
+  --green:#34d399;--blue:#60a5fa;--red:#f87171;--purple:#a78bfa;
+  --text:#f0eef8;--muted:#6a607a;--border:rgba(255,255,255,0.1);
+  --r:24px;--r-sm:16px;
+
+  /* iOS 26 Liquid Glass */
+  --lg-bg: rgba(255,255,255,0.10);
+  --lg-bg2: rgba(255,255,255,0.07);
+  --lg-border: rgba(255,255,255,0.22);
+  --lg-border2: rgba(255,255,255,0.12);
+  --lg-shine: rgba(255,255,255,0.30);
+  --lg-shadow: 0 8px 32px rgba(0,0,0,0.40), 0 2px 8px rgba(0,0,0,0.25);
+  --lg-inset: inset 0 1.5px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.10), inset 1px 0 0 rgba(255,255,255,0.14), inset -1px 0 0 rgba(255,255,255,0.08);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,"PingFang SC","SF Pro Text",sans-serif;
+  width:100vw;height:100vh;position:fixed;
+  user-select:none;-webkit-user-select:none;
+}
+
+/* Ambient mesh — makes glass look more real */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 10%, rgba(100,120,220,0.18) 0%,transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 25%, rgba(80,160,200,0.14) 0%,transparent 55%),
+    radial-gradient(ellipse 50% 60% at 50% 80%, rgba(60,40,120,0.12) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 30% at 25% 65%, rgba(180,100,30,0.08) 0%,transparent 50%);
+}
+
+#viewport{width:100%;will-change:transform;transform:translate3d(0,0,0);min-height:101%;position:relative;z-index:1}
+.container{width:100%;max-width:430px;margin:0 auto;padding:12px 14px 145px;display:flex;flex-direction:column;gap:18px}
+
+/* ─── PAGES ─── */
+.page{display:none;width:100%}
+.page.active{display:block;animation:fadeUp .3s cubic-bezier(.22,1,.36,1) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─────────────────────────────────────
+   LIQUID GLASS ENGINE
+   Matches iOS 26 reference image exactly:
+   - thick frosted body
+   - bright edge light line (top)
+   - curved inner highlight (the "lens" look)
+   - deep cast shadow
+───────────────────────────────────── */
+.lg{
+  background: rgba(255,255,255,0.09);
+  backdrop-filter: blur(44px) saturate(2.0) brightness(1.10) contrast(1.02);
+  -webkit-backdrop-filter: blur(44px) saturate(2.0) brightness(1.10) contrast(1.02);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-radius: var(--r);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.42),
+    0 2px 8px rgba(0,0,0,0.24),
+    0 0 0 0.5px rgba(255,255,255,0.06),
+    inset 0 1.5px 0 rgba(255,255,255,0.26),
+    inset 0 -1px 0 rgba(0,0,0,0.10),
+    inset 1px 0 0 rgba(255,255,255,0.12),
+    inset -1px 0 0 rgba(255,255,255,0.08);
+  position:relative;overflow:hidden;
+}
+.lg::before{
+  content:'';position:absolute;
+  top:0;left:4%;right:4%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55) 50%,transparent);
+  z-index:2;pointer-events:none;
+}
+.lg::after{
+  content:'';position:absolute;
+  top:1px;left:5%;right:5%;height:30%;
+  background:linear-gradient(180deg,rgba(255,255,255,.10) 0%,transparent 100%);
+  border-radius:0 0 50% 50%;
+  z-index:1;pointer-events:none;
+}
+/* Top edge light — the bright line in reference */
+.lg::before{
+  content:'';position:absolute;top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55) 30%,rgba(255,255,255,.70) 50%,rgba(255,255,255,.55) 70%,transparent);
+  z-index:2;
+}
+/* Curved inner lens highlight — gives the 3D curvature */
+.lg::after{
+  content:'';position:absolute;top:1px;left:6%;right:6%;height:35%;
+  background:linear-gradient(180deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.03) 60%,transparent 100%);
+  border-radius:0 0 60% 60%;
+  z-index:1;pointer-events:none;
+}
+
+/* Gold-tinted LG */
+.lg-gold{
+  background:linear-gradient(150deg,rgba(245,200,66,0.13) 0%,rgba(180,100,20,0.08) 100%);
+  backdrop-filter:blur(40px) saturate(2.0) brightness(1.06);
+  -webkit-backdrop-filter:blur(40px) saturate(2.0) brightness(1.06);
+  border:1px solid rgba(245,200,66,0.28);
+  border-radius:var(--r);
+  box-shadow:var(--lg-shadow), 0 0 40px rgba(212,154,55,0.12), var(--lg-inset);
+  position:relative;overflow:hidden;
+}
+.lg-gold::before{
+  content:'';position:absolute;top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,220,100,.60) 40%,rgba(255,240,140,.80) 50%,rgba(255,220,100,.60) 60%,transparent);
+  z-index:2;
+}
+.lg-gold::after{
+  content:'';position:absolute;top:1px;left:6%;right:6%;height:35%;
+  background:linear-gradient(180deg,rgba(255,220,80,.12) 0%,transparent 100%);
+  border-radius:0 0 60% 60%;z-index:1;pointer-events:none;
+}
+
+/* Green LG */
+.lg-green{
+  background:linear-gradient(150deg,rgba(52,211,153,0.10) 0%,rgba(10,80,50,0.07) 100%);
+  backdrop-filter:blur(40px) saturate(1.8);
+  -webkit-backdrop-filter:blur(40px) saturate(1.8);
+  border:1px solid rgba(52,211,153,0.22);
+  border-radius:var(--r);
+  box-shadow:var(--lg-shadow),0 0 36px rgba(52,211,153,0.08),var(--lg-inset);
+  position:relative;overflow:hidden;
+}
+.lg-green::before{
+  content:'';position:absolute;top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(100,255,180,.55) 50%,transparent);z-index:2;
+}
+.lg-green::after{
+  content:'';position:absolute;top:1px;left:6%;right:6%;height:35%;
+  background:linear-gradient(180deg,rgba(52,211,153,.10) 0%,transparent 100%);
+  border-radius:0 0 60% 60%;z-index:1;pointer-events:none;
+}
+
+/* Blue LG */
+.lg-blue{
+  background:linear-gradient(150deg,rgba(96,165,250,0.10) 0%,rgba(20,40,100,0.07) 100%);
+  backdrop-filter:blur(40px) saturate(1.8);
+  -webkit-backdrop-filter:blur(40px) saturate(1.8);
+  border:1px solid rgba(96,165,250,0.22);
+  border-radius:var(--r);
+  box-shadow:var(--lg-shadow),0 0 36px rgba(96,165,250,0.09),var(--lg-inset);
+  position:relative;overflow:hidden;
+}
+.lg-blue::before{
+  content:'';position:absolute;top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(140,200,255,.60) 50%,transparent);z-index:2;
+}
+.lg-blue::after{
+  content:'';position:absolute;top:1px;left:6%;right:6%;height:35%;
+  background:linear-gradient(180deg,rgba(96,165,250,.10) 0%,transparent 100%);
+  border-radius:0 0 60% 60%;z-index:1;pointer-events:none;
+}
+
+/* Dark LG — menus */
+.lg-dark{
+  background:rgba(8,4,16,0.60);
+  backdrop-filter:blur(36px) saturate(1.6);
+  -webkit-backdrop-filter:blur(36px) saturate(1.6);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:var(--r);
+  box-shadow:0 8px 32px rgba(0,0,0,0.55),inset 0 1.5px 0 rgba(255,255,255,0.12);
+  position:relative;overflow:hidden;
+}
+.lg-dark::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 10%,rgba(255,255,255,.12) 50%,transparent 90%);z-index:2;
+}
+
+/* ─── TAP ─── */
+.tappable{cursor:pointer;-webkit-transform:translateZ(0);transition:transform .44s cubic-bezier(.34,1.56,.64,1),filter .44s ease}
+.tappable.tap-down{transform:scale(.95) translateY(2px)!important;filter:brightness(.65) saturate(.8)!important;transition:transform .07s ease,filter .07s ease!important}
+
+/* ─────────────────────────────────────
+   HOME
+───────────────────────────────────── */
+.home-hdr{display:flex;justify-content:space-between;align-items:center;padding:20px 4px 18px;position:relative}
+.home-hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,164,100,.18),transparent)}
+.logo{
+  font-size:28px;font-weight:900;letter-spacing:1px;
+  background:linear-gradient(135deg,#f4dc88 0%,#d4a040 55%,#f0cc70 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.logo-sub{font-size:10px;color:#4a4028;letter-spacing:3.5px;margin-top:3px;text-transform:uppercase}
+.hdr-pill{
+  padding:6px 13px;border-radius:20px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  font-size:11px;color:rgba(255,255,255,.45);font-weight:600;letter-spacing:.5px;
+}
+
+/* Dev card */
+.dev-card{padding:20px}
+.dev-badge{color:var(--gold2);font-weight:800;font-size:15px;margin-bottom:13px;display:flex;align-items:center;gap:7px}
+.dev-inner{display:flex;gap:16px;align-items:center}
+.dev-logo{width:80px;height:80px;background:#fff;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#111;font-weight:900;font-size:11px;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.9)}
+.dev-logo span:first-child{font-size:34px;line-height:1.1}
+.dev-desc{font-size:12.5px;line-height:2;color:#a89898}
+.dev-desc .hl{color:var(--gold2);font-weight:700}
+.ver-tag{display:inline-flex;align-items:center;gap:5px;margin-top:11px;padding:4px 12px;background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.18);border-radius:20px;font-size:11px;color:#b89040;font-weight:600;letter-spacing:.5px}
+
+/* Promo */
+.promo-hdr{padding:14px 18px 10px;display:flex;align-items:center;gap:10px}
+.promo-bar{width:3px;height:18px;background:linear-gradient(180deg,var(--gold2),var(--gold));border-radius:2px;flex-shrink:0}
+.promo-ttl{font-size:18px;font-weight:900;color:#ecc870;letter-spacing:.4px}
+.promo-body{display:flex;align-items:stretch}
+.promo-img{width:108px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:54px;border-right:1px solid rgba(255,255,255,.06)}
+.promo-r{flex:1;padding:12px 16px 16px}
+.promo-job{font-size:13px;font-weight:700;color:#b89050;margin-bottom:9px}
+.price-row{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.price-big{font-size:28px;font-weight:900;color:var(--gold2)}
+.price-orig{font-size:12px;color:#5a3820;text-decoration:line-through}
+.badge-red{display:inline-block;background:rgba(248,113,113,.14);border:1px solid rgba(248,113,113,.22);color:var(--red);font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px}
+
+/* Group */
+.group-row{height:68px;display:flex;align-items:center;padding:0 18px;gap:14px;position:relative}
+.group-row::after{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:linear-gradient(180deg,rgba(96,165,250,.8),transparent);border-radius:3px 0 0 3px}
+.group-ico{width:46px;height:46px;border-radius:13px;background:rgba(96,165,250,.10);border:1px solid rgba(96,165,250,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.group-sub{font-size:11px;color:#3a5a80;margin-top:2px;font-weight:600}
+
+/* Tools */
+.tools-pad{padding:20px}
+.tools-inner{display:flex;align-items:center;gap:16px}
+.tools-em{font-size:50px;flex-shrink:0;filter:drop-shadow(0 0 16px rgba(52,211,153,.35))}
+.tools-ttl{color:var(--green);font-size:20px;font-weight:900;margin-bottom:4px}
+.tools-dsc{font-size:11px;color:#2a6040;line-height:1.7;margin-bottom:7px}
+.tools-bot{display:flex;align-items:center;gap:8px}
+.badge-green{font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px;background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.2);color:var(--green)}
+
+/* ─────────────────────────────────────
+   SECTION / SUB HEADER
+───────────────────────────────────── */
+.sec-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;padding:6px 4px 2px}
+.sub-hdr{display:flex;align-items:center;gap:14px;padding:14px 2px 16px}
+.back-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;color:rgba(255,255,255,.65);font-weight:300;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.page-title{font-size:22px;font-weight:800}
+
+/* ─────────────────────────────────────
+   MENU ROWS
+───────────────────────────────────── */
+.menu-list{overflow:hidden}
+.mrow{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055);position:relative}
+.mrow:last-child{border-bottom:none}
+.mico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;margin-right:13px}
+.mlbl{flex:1;font-size:15px;font-weight:600}
+.mval{font-size:13px;color:var(--muted);margin-right:8px}
+.marr{font-size:16px;color:rgba(255,255,255,.18)}
+.badge-new{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;margin-right:8px}
+
+/* ─────────────────────────────────────
+   AUTH
+───────────────────────────────────── */
+.auth-wrap{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:0 20px 40px}
+.auth-logo-big{
+  font-size:42px;font-weight:900;letter-spacing:2px;text-align:center;
+  background:linear-gradient(135deg,#f4dc88,#d4a040);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.auth-logo-sub{font-size:11px;color:var(--muted);letter-spacing:3px;margin-top:4px;text-transform:uppercase;text-align:center}
+.auth-logo-wrap{margin-bottom:32px}
+.auth-ttl{font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:6px}
+.auth-sub{font-size:14px;color:var(--muted);margin-bottom:22px}
+.form-grp{border-radius:20px;overflow:hidden}
+.inp-row{padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04)}
+.inp-row:last-child{border-bottom:none}
+.inp-ico{font-size:16px;width:22px;text-align:center;opacity:.38}
+.inp-row input{background:transparent;border:none;color:#fff;font-size:16px;outline:none;flex:1;user-select:text!important;-webkit-user-select:text!important}
+.inp-row input::placeholder{color:rgba(255,255,255,.2)}
+.auth-btn{
+  background:linear-gradient(135deg,#eab040,#c07820);color:#1a0800;
+  height:54px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:16px;margin-top:18px;letter-spacing:.3px;
+  box-shadow:0 8px 28px rgba(180,120,20,.42),inset 0 1.5px 0 rgba(255,225,100,.35);
+}
+.auth-link{text-align:center;color:var(--blue);font-size:14px;margin-top:16px;opacity:.8}
+.auth-err{color:var(--red);font-size:13px;text-align:center;margin-top:12px;min-height:18px;transition:opacity .2s}
+
+/* ─────────────────────────────────────
+   PROFILE
+───────────────────────────────────── */
+.profile-hero{padding:22px 20px}
+.profile-av{width:70px;height:70px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--gold2),var(--gold));display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 20px rgba(200,130,10,.45),inset 0 1.5px 0 rgba(255,220,80,.4)}
+.profile-name{font-size:22px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px}
+.profile-tag{font-size:11px;color:var(--gold);font-weight:700;background:rgba(212,154,55,.1);border:1px solid rgba(212,154,55,.2);display:inline-block;padding:2px 10px;border-radius:20px}
+.profile-meta{display:flex;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
+.pstat{text-align:center;flex:1}
+.pstat-n{font-size:21px;font-weight:900;color:var(--gold2)}
+.pstat-l{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.5px}
+.pstat+.pstat{border-left:1px solid rgba(255,255,255,.07)}
+
+.vip-pad{padding:20px}
+.vip-lbl{font-size:10px;font-weight:800;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.vip-ttl{font-size:20px;font-weight:900;color:var(--gold3);margin-bottom:4px}
+.vip-sub{font-size:12px;color:#7a6030}
+.vip-btn{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a0800;font-weight:800;font-size:13px;padding:9px 22px;border-radius:22px;display:inline-block;margin-top:13px;box-shadow:0 4px 16px rgba(200,150,10,.35),inset 0 1px 0 rgba(255,220,80,.3)}
+.logout-btn{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.14);border-radius:18px;height:52px;display:flex;align-items:center;justify-content:center;color:var(--red);font-weight:700;font-size:15px;gap:8px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+/* ─────────────────────────────────────
+   RECHARGE
+───────────────────────────────────── */
+.bal-hero{padding:26px 20px;text-align:center}
+.bal-lbl{font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.bal-amt{font-size:50px;font-weight:900;color:var(--gold2);letter-spacing:-2px}
+.bal-sub{font-size:12px;color:var(--muted);margin-top:5px}
+.rch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.r-item{border-radius:18px;padding:14px 8px;text-align:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);position:relative;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 4px 16px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.14);transition:border-color .2s,background .2s}
+.r-item.popular::before{content:'热门';position:absolute;top:0;right:0;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a0800;font-size:10px;font-weight:800;padding:2px 8px;border-radius:0 18px 0 10px}
+.r-item .r-amt{font-size:21px;font-weight:900;color:var(--gold2);margin-bottom:2px}
+.r-item .r-bon{font-size:10px;color:var(--green);font-weight:700}
+.r-item .r-prc{font-size:12px;color:var(--muted);margin-top:4px}
+.r-item.selected{border-color:var(--gold);background:rgba(212,154,55,.12)}
+.pay-btn{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a0800;height:54px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;letter-spacing:.3px;box-shadow:0 8px 28px rgba(180,120,20,.42),inset 0 1.5px 0 rgba(255,220,80,.35)}
+
+/* ─────────────────────────────────────
+   TEAM
+───────────────────────────────────── */
+.team-hero{padding:22px 20px}
+.team-n{font-size:48px;font-weight:900;color:var(--green);line-height:1}
+.team-lbl{font-size:11px;color:#2a6040;margin-top:4px;letter-spacing:2px;text-transform:uppercase}
+.team-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.tstat{border-radius:16px;padding:14px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.10);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.tstat-n{font-size:22px;font-weight:900;color:var(--green)}
+.tstat-l{font-size:11px;color:#2a5a38;margin-top:2px}
+.mem-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.mem-row:last-child{border-bottom:none}
+.mem-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mem-name{font-size:15px;font-weight:700;flex:1}
+.role{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px}
+.role-c{background:rgba(245,200,66,.12);color:var(--gold2);border:1px solid rgba(245,200,66,.2)}
+.role-d{background:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.18)}
+.role-o{background:rgba(52,211,153,.10);color:var(--green);border:1px solid rgba(52,211,153,.18)}
+
+/* ─────────────────────────────────────
+   ORDERS
+───────────────────────────────────── */
+.order-item{border-radius:20px;padding:16px 18px;display:flex;align-items:center;gap:13px}
+.ord-ico{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ord-name{font-size:15px;font-weight:700;margin-bottom:3px}
+.ord-date{font-size:11px;color:var(--muted)}
+.ord-amt{font-size:16px;font-weight:900;color:var(--gold2);white-space:nowrap}
+.ord-st{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:3px}
+.s-done{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.18)}
+.s-pend{background:rgba(245,200,66,.1);color:var(--gold2);border:1px solid rgba(245,200,66,.18)}
+
+/* ─────────────────────────────────────
+   INVITE
+───────────────────────────────────── */
+.inv-hero{padding:26px 20px;text-align:center}
+.inv-code{font-size:34px;font-weight:900;color:var(--purple);letter-spacing:6px;margin:12px 0}
+.inv-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.invs{border-radius:16px;padding:14px 8px;text-align:center;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.12)}
+.invs-n{font-size:22px;font-weight:900;color:var(--purple)}
+.invs-l{font-size:10px;color:var(--muted);margin-top:2px}
+.copy-btn{border-radius:16px;height:50px;display:flex;align-items:center;justify-content:center;background:rgba(167,139,250,.10);border:1px solid rgba(167,139,250,.22);color:var(--purple);font-weight:700;font-size:15px;gap:8px}
+.share-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.shr-item{border-radius:16px;padding:14px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.shr-ico{font-size:26px}
+.shr-lbl{font-size:11px;color:var(--muted)}
+.rule-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.rule-item:last-child{border-bottom:none}
+.rule-n{width:24px;height:24px;border-radius:50%;background:rgba(167,139,250,.12);color:var(--purple);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.rule-t{font-size:13px;color:#9a8898;line-height:1.7}
+
+/* ─────────────────────────────────────
+   SETTINGS — toggle
+───────────────────────────────────── */
+.tog-row{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055)}
+.tog-row:last-child{border-bottom:none}
+.tog-lbl{font-size:15px;font-weight:600;flex:1}
+.tog-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.toggle{width:50px;height:28px;border-radius:14px;position:relative;flex-shrink:0;transition:background .28s}
+.toggle.on{background:linear-gradient(135deg,#34d399,#059669)}
+.toggle.off{background:rgba(255,255,255,.12)}
+.toggle-k{position:absolute;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:left .28s cubic-bezier(.34,1.56,.64,1)}
+.toggle.on .toggle-k{left:25px}
+.toggle.off .toggle-k{left:3px}
+
+/* Change password modal input */
+.modal-input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:13px 15px;color:#fff;font-size:15px;width:100%;outline:none;margin-bottom:10px;user-select:text!important;-webkit-user-select:text!important}
+.modal-input::placeholder{color:rgba(255,255,255,.25)}
+
+/* ─────────────────────────────────────
+   ABOUT / POLICY
+───────────────────────────────────── */
+.about-logo{text-align:center;padding:24px 0 16px}
+.about-logo .big{font-size:54px;font-weight:900;letter-spacing:3px;background:linear-gradient(135deg,#f4dc88,#d4a040);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.about-logo .ver{font-size:13px;color:var(--muted);margin-top:6px}
+.about-logo .sub{font-size:10px;color:#2a1a0a;letter-spacing:3px;text-transform:uppercase;margin-top:3px}
+.about-row{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.05)}
+.about-row:last-child{border-bottom:none}
+.about-k{font-size:14px;color:var(--muted)}
+.about-v{font-size:14px;font-weight:600}
+.copyright{text-align:center;font-size:11px;color:#2a1a1a;line-height:1.8;margin-top:8px}
+
+/* Policy content */
+.policy-body{font-size:13px;color:#8a7a8a;line-height:1.9;padding:4px 0}
+.policy-body h3{font-size:15px;font-weight:700;color:var(--text);margin:16px 0 6px}
+.policy-body h3:first-child{margin-top:0}
+.policy-body p{margin-bottom:10px}
+
+/* ─────────────────────────────────────
+   GROUP
+───────────────────────────────────── */
+.grp-hero{padding:26px 20px;text-align:center}
+.grp-av-big{width:80px;height:80px;border-radius:22px;margin:0 auto 14px;background:rgba(96,165,250,.10);border:1px solid rgba(96,165,250,.2);display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 4px 20px rgba(0,0,0,.5),inset 0 1px 0 rgba(96,165,250,.2)}
+.grp-qr{width:160px;height:160px;border-radius:16px;margin:14px auto;background:rgba(255,255,255,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:#333;font-weight:700;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+.join-btn{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;height:52px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;box-shadow:0 8px 28px rgba(59,130,246,.4),inset 0 1.5px 0 rgba(150,200,255,.3)}
+
+/* ─────────────────────────────────────
+   TOOLS
+───────────────────────────────────── */
+.tool-item{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.tool-item:last-child{border-bottom:none}
+.tool-ico{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.tool-name{font-size:15px;font-weight:700;margin-bottom:3px}
+.tool-dsc{font-size:12px;color:var(--muted);line-height:1.5}
+.tool-st{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;margin-left:auto;flex-shrink:0}
+.t-free{background:rgba(52,211,153,.10);color:var(--green);border:1px solid rgba(52,211,153,.18)}
+.t-vip{background:rgba(245,200,66,.10);color:var(--gold2);border:1px solid rgba(245,200,66,.15)}
+.dl-btn{background:linear-gradient(135deg,var(--green),#059669);color:#fff;height:52px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;gap:8px;box-shadow:0 8px 28px rgba(52,211,153,.32),inset 0 1.5px 0 rgba(150,255,200,.25)}
+
+/* ─────────────────────────────────────
+   PROMO DETAIL / APPLY
+───────────────────────────────────── */
+.ben-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ben-item:last-child{border-bottom:none}
+.ben-ico{font-size:22px;width:36px;text-align:center}
+.ben-txt{font-size:14px;color:#a09068;line-height:1.5}
+.ben-txt b{color:var(--gold2)}
+.inp-field{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:14px 16px;font-size:15px;color:#fff;width:100%;outline:none;user-select:text!important;-webkit-user-select:text!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.inp-field::placeholder{color:rgba(255,255,255,.2)}
+textarea.inp-field{resize:none;line-height:1.7}
+
+/* ─────────────────────────────────────
+   NEWS
+───────────────────────────────────── */
+.news-card{padding:18px 18px 18px 20px}
+.news-card::after{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--gold2),rgba(212,154,55,.15));border-radius:3px 0 0 3px}
+.news-time{font-size:10px;color:#4a3838;margin-bottom:5px;letter-spacing:.5px}
+.news-h{font-size:16px;font-weight:700;margin-bottom:4px}
+.news-p{font-size:13px;color:#6a5858;line-height:1.6}
+.nd-tag{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+.nd-title{font-size:24px;font-weight:900;line-height:1.3;margin-bottom:8px}
+.nd-meta{font-size:12px;color:var(--muted);margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07)}
+.nd-body{font-size:14px;line-height:1.9;color:#a89898}
+.nd-body p{margin-bottom:14px}
+.nd-body .hl{background:rgba(245,200,66,.07);border-left:3px solid var(--gold2);padding:12px 14px;border-radius:0 10px 10px 0;margin:14px 0;font-size:13px;color:var(--gold3)}
+
+/* dev detail */
+.tl-item{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:2px}
+.tl-ttl{font-size:14px;font-weight:800;margin-bottom:3px}
+.tl-dsc{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ─────────────────────────────────────
+   LIQUID GLASS NAV — the star
+───────────────────────────────────── */
+.nav-wrap{position:fixed;bottom:0;left:0;width:100%;height:130px;z-index:9000;display:flex;justify-content:center;align-items:flex-end;padding-bottom:26px;pointer-events:none;overflow:visible}
+
+.nav-bar{
+  width:84%;max-width:320px;height:62px;
+  position:relative;pointer-events:auto;
+  background:rgba(255,255,255,0.11);
+  backdrop-filter:blur(50px) saturate(2.5) brightness(1.1);
+  -webkit-backdrop-filter:blur(50px) saturate(2.5) brightness(1.1);
+  border-radius:31px;
+  border:1px solid rgba(255,255,255,0.22);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.22),
+    0 16px 48px rgba(0,0,0,0.55),
+    0 6px 16px rgba(0,0,0,0.35),
+    inset 0 1.5px 0 rgba(255,255,255,0.38),
+    inset 0 -1px 0 rgba(0,0,0,0.10),
+    inset 1.5px 0 0 rgba(255,255,255,0.16),
+    inset -1.5px 0 0 rgba(255,255,255,0.10);
+  display:grid;grid-template-columns:1fr 72px 1fr;align-items:center;
+  overflow:visible;
+  z-index:1;
+}
+
+/* Top curved gloss — exactly like iOS 26 pill */
+.nav-bar::before{
+  content:'';position:absolute;
+  top:1px;left:0;right:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.30) 0%,rgba(255,255,255,.08) 50%,transparent 100%);
+  border-radius:31px 31px 50% 50%;
+  pointer-events:none;z-index:2;
+}
+
+/* Bottom subtle reflection */
+.nav-bar::after{
+  content:'';position:absolute;
+  bottom:1px;left:0;right:0;height:12%;
+  background:linear-gradient(0deg,rgba(255,255,255,.08) 0%,transparent 100%);
+  border-radius:0 0 31px 31px;
+  pointer-events:none;
+}
+
+.nav-side{display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer}
+.nav-side:first-child{padding-left:4px}
+.nav-side:last-child{padding-right:4px}
+.nav-icon{font-size:23px;opacity:.42;transition:opacity .22s,transform .36s cubic-bezier(.34,1.56,.64,1),filter .22s}
+.nav-icon.active{opacity:1;transform:scale(1.14);filter:drop-shadow(0 2px 6px rgba(255,255,255,.22))}
+
+.nav-center-col{display:flex;align-items:center;justify-content:center;height:100%;overflow:visible;position:relative;z-index:5;}
+
+/* Star — floating gold liquid glass pill */
+.nav-star{
+  width:68px;height:68px;border-radius:50%;
+  background:linear-gradient(145deg,#fce878,#e8a010,#d4900a);
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  cursor:pointer;margin-top:-40px;
+  position:relative;z-index:10;
+
+  border:1.5px solid rgba(255,220,60,.60);
+  box-shadow:
+    0 0 0 3.5px rgba(6,9,15,0.92),
+    0 0 0 5px rgba(255,200,40,.30),
+    0 0 0 8px rgba(255,180,20,.08),
+    0 14px 36px rgba(200,140,10,.70),
+    0 6px 14px rgba(0,0,0,.55),
+    0 0 60px rgba(255,200,40,.20),
+    inset 0 3px 0 rgba(255,250,140,.65),
+    inset 0 -2px 0 rgba(100,50,0,.35);
+
+  transition:transform .44s cubic-bezier(.34,1.56,.64,1),filter .44s ease;
+}
+.nav-star.tap-down{transform:scale(.83) translateY(2px)!important;filter:brightness(.64)!important;transition:transform .07s ease,filter .07s ease!important}
+
+/* ─────────────────────────────────────
+   TOAST + MODAL
+───────────────────────────────────── */
+.toast{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(.86);
+  background:rgba(12,6,18,0.82);
+  backdrop-filter:blur(40px) saturate(2);
+  -webkit-backdrop-filter:blur(40px) saturate(2);
+  border:1px solid rgba(255,255,255,.16);
+  color:var(--gold2);font-weight:800;font-size:16px;
+  padding:15px 30px;border-radius:22px;
+  z-index:99999;pointer-events:none;
+  box-shadow:0 24px 64px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.18);
+  opacity:0;white-space:nowrap;
+  transition:opacity .2s,transform .28s cubic-bezier(.34,1.56,.64,1);
+}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:8000;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-sheet{
+  background:rgba(10,5,18,0.85);
+  backdrop-filter:blur(50px) saturate(2);
+  -webkit-backdrop-filter:blur(50px) saturate(2);
+  border-radius:28px 28px 0 0;padding:20px 20px 50px;
+  width:100%;max-width:430px;
+  border-top:1px solid rgba(255,255,255,.18);
+  box-shadow:0 -4px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.18);
+  animation:slideUp .3s cubic-bezier(.22,1,.36,1);
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:0 auto 18px}
+.modal-title{font-size:20px;font-weight:800;margin-bottom:10px}
+.modal-body-t{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:18px}
+.modal-cancel{text-align:center;color:var(--muted);font-size:14px;padding:10px}
+
+/* FORUM */
+.forum-tab{padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;color:var(--muted);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);transition:all .2s;flex-shrink:0}
+.forum-tab.active{background:rgba(245,200,66,.12);border-color:rgba(245,200,66,.28);color:var(--gold2)}
+.forum-card{border-radius:20px;padding:16px 18px;position:relative;overflow:hidden;cursor:pointer}
+.forum-card::after{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.forum-card.cat-sys::after{background:linear-gradient(180deg,var(--red),transparent)}
+.forum-card.cat-guide::after{background:linear-gradient(180deg,var(--green),transparent)}
+.forum-card.cat-event::after{background:linear-gradient(180deg,var(--gold2),transparent)}
+.forum-card.cat-tech::after{background:linear-gradient(180deg,var(--blue),transparent)}
+.forum-card.cat-update::after{background:linear-gradient(180deg,var(--purple),transparent)}
+.forum-card.cat-user::after{background:linear-gradient(180deg,rgba(255,255,255,.4),transparent)}
+.forum-meta{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.forum-tag{font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.5px}
+.forum-author{font-size:11px;color:var(--muted)}
+.forum-time{font-size:11px;color:var(--muted);margin-left:auto}
+.forum-title{font-size:16px;font-weight:800;margin-bottom:4px;line-height:1.4}
+.forum-preview{font-size:13px;color:rgba(255,255,255,.45);line-height:1.5}
+.forum-footer{display:flex;align-items:center;gap:14px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.05)}
+.forum-stat{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.forum-hot{background:var(--red);color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:6px}
+.post-cat-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09)}
+.post-cat-btn.active{background:rgba(245,200,66,.12);border-color:rgba(245,200,66,.28);color:var(--gold2)}
+.forum-detail-header{padding:16px 0 12px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:16px}
+.forum-like-btn{display:flex;align-items:center;gap:8px;justify-content:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:14px;font-weight:600;margin-top:14px}
+.forum-like-btn.liked{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.2);color:var(--red)}
+</style>
+</head>
+<body>
+<div id="viewport">
+
+<!-- ══ HOME ══ -->
+<div id="page-home" class="page active">
+<div class="container">
+  <div class="home-hdr">
+    <div><div class="logo">TWICEZ</div><div class="logo-sub">zenith zealots</div></div>
+    <div class="hdr-pill">v7.0</div>
+  </div>
+  <div class="lg-gold dev-card tappable" id="btn-dev"><div class="dev-badge">🏮 臻华版 TWICEZ 7.0</div><div class="dev-inner"><div class="dev-logo">
+<svg width="54" height="54" viewBox="0 0 54 54" fill="none">
+  <ellipse cx="27" cy="27" rx="16" ry="8" stroke="#111" stroke-width="3" fill="none"/>
+  <path d="M11 27 Q11 14 27 14 Q43 14 43 27" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M43 27 Q43 40 27 40 Q11 40 11 27" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M19 22 Q27 19 35 22" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <ellipse cx="27" cy="27" rx="4" ry="2" fill="#111" opacity="0.15"/>
+</svg>
+</div><div class="dev-desc">本软件由 XXXXXXXXXXX—JX<br>XXXXXXXXXXX—鑫海<br>Minecraft圈内大佬<br><span class="hl">最新2026版本持续更新！</span><div class="ver-tag">✦ v7.0 · Zenith Core</div></div></div></div>
+  <div class="lg-gold tappable" id="btn-promo" style="overflow:hidden"><div class="promo-hdr"><div class="promo-bar"></div><div class="promo-ttl">2026 限时活动</div></div><div class="promo-body"><div class="promo-img">🏹</div><div class="promo-r"><div class="promo-job">招收职位：全网APP代理</div><div class="price-row"><span class="price-big">¥37</span><span class="price-orig">¥120.00</span></div><span class="badge-red">限时69折</span></div></div></div>
+  <div class="lg-blue tappable" id="btn-group"><div class="group-row"><div class="group-ico">👾</div><div><div style="font-size:18px;font-weight:800">TWICEZ 官方群</div><div class="group-sub">1,240 名成员在线</div></div><div style="font-size:16px;color:rgba(96,165,250,.3);margin-left:auto">›</div></div></div>
+  <div class="lg-green tools-pad tappable" id="btn-tools"><div class="tools-inner"><div class="tools-em">🐷</div><div><div class="tools-ttl">XXX工具包</div><div class="tools-dsc">最新16e社X · 短信测压 · IP探针</div><div class="tools-bot"><span style="font-size:18px;font-weight:900;color:#e0f8f0">¥0.00</span><span class="badge-green">永久免费</span></div></div></div></div>
+</div>
+</div>
+
+<!-- ══ USER ══ -->
+<div id="page-user" class="page">
+<div class="container">
+  <div id="view-login"><div class="auth-wrap">
+    <div class="auth-logo-wrap"><div class="auth-logo-big">TWICEZ</div><div class="auth-logo-sub">zenith zealots</div></div>
+    <div class="auth-ttl">登录</div><div class="auth-sub">欢迎回到 TWICEZ Zenith</div>
+    <div class="lg form-grp"><div class="inp-row"><span class="inp-ico">👤</span><input type="text" id="login-user" placeholder="账号" autocomplete="username"></div><div class="inp-row"><span class="inp-ico">🔒</span><input type="password" id="login-pass" placeholder="密码" autocomplete="current-password"></div></div>
+    <div class="auth-btn tappable" id="btn-login">立即进入</div>
+    <div class="auth-err" id="login-error"></div>
+    <p class="auth-link tappable" id="btn-to-reg">没有账号？立即注册</p>
+  </div></div>
+  <div id="view-register" style="display:none"><div class="auth-wrap">
+    <div class="auth-logo-wrap"><div class="auth-logo-big">TWICEZ</div><div class="auth-logo-sub">zenith zealots</div></div>
+    <div class="auth-ttl">注册</div><div class="auth-sub">加入 2026 最强社区</div>
+    <div class="lg form-grp"><div class="inp-row"><span class="inp-ico">👤</span><input type="text" id="reg-user" placeholder="账号" autocomplete="username"></div><div class="inp-row"><span class="inp-ico">🔒</span><input type="password" id="reg-pass" placeholder="密码(至少6位)" autocomplete="new-password"></div></div>
+    <div class="auth-btn tappable" id="btn-register">确认注册</div>
+    <div class="auth-err" id="reg-error"></div>
+    <p class="auth-link tappable" id="btn-to-login">已有账号？返回登录</p>
+  </div></div>
+  <div id="view-profile" style="display:none">
+    <div style="height:14px"></div>
+    <div class="lg-gold profile-hero" style="margin-bottom:6px"><div style="display:flex;align-items:center"><div class="profile-av">👑</div><div style="margin-left:16px"><div class="profile-name" id="profile-name">—</div><span class="profile-tag">TWICEZ 会员</span></div></div><div class="profile-meta"><div class="pstat"><div class="pstat-n" id="stat-balance">¥0</div><div class="pstat-l">余额</div></div><div class="pstat"><div class="pstat-n" id="stat-orders">0</div><div class="pstat-l">订单数</div></div><div class="pstat"><div class="pstat-n">12</div><div class="pstat-l">团队人数</div></div></div></div>
+    <div class="lg-gold vip-pad tappable" id="btn-goto-rch"><div class="vip-lbl">⚡ TWICEZ VIP</div><div class="vip-ttl">臻华会员专属权益</div><div class="vip-sub">充值享受最低折扣 · 专属客服通道</div><div class="vip-btn">立即充值 →</div></div>
+    <div class="sec-title">账户管理</div>
+    <div class="lg-dark menu-list">
+      <div class="mrow tappable" id="btn-goto-rch2"><div class="mico" style="background:rgba(245,200,66,.10)">💰</div><div class="mlbl">充值中心</div><div class="mval" id="menu-balance">¥0.00</div><div class="marr">›</div></div>
+      <div class="mrow tappable" id="btn-goto-team"><div class="mico" style="background:rgba(52,211,153,.08)">👥</div><div class="mlbl">团队信息</div><div class="mval">12人</div><div class="marr">›</div></div>
+      <div class="mrow tappable" id="btn-goto-orders"><div class="mico" style="background:rgba(96,165,250,.08)">📦</div><div class="mlbl">我的订单</div><div class="mval" id="menu-orders">0笔</div><div class="marr">›</div></div>
+      <div class="mrow tappable" id="btn-goto-invite"><div class="mico" style="background:rgba(167,139,250,.10)">🎁</div><div class="mlbl">邀请好友</div><div class="badge-new">NEW</div><div class="marr">›</div></div>
+    </div>
+    <div class="sec-title">系统</div>
+    <div class="lg-dark menu-list">
+      <div class="mrow tappable" id="btn-goto-settings"><div class="mico" style="background:rgba(255,255,255,.05)">⚙️</div><div class="mlbl">设置</div><div class="marr">›</div></div>
+      <div class="mrow tappable" id="btn-goto-about"><div class="mico" style="background:rgba(255,255,255,.05)">ℹ️</div><div class="mlbl">关于 TWICEZ</div><div class="mval">v7.0</div><div class="marr">›</div></div>
+    </div>
+    <div class="logout-btn tappable" id="btn-logout">🚪 退出登录</div>
+    <div style="height:10px"></div>
+  </div>
+</div>
+</div>
+
+<!-- ══ RECHARGE ══ -->
+<div id="page-recharge" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-rch">‹</div><div class="page-title">充值中心</div></div>
+  <div class="lg-gold bal-hero"><div class="bal-lbl">当前余额</div><div class="bal-amt" id="rch-balance">¥0.00</div><div class="bal-sub">余额可用于购买所有 TWICEZ 服务</div></div>
+  <div class="sec-title">选择面额</div>
+  <div class="rch-grid">
+    <div class="r-item tappable" data-amount="30" data-bonus="0"><div class="r-amt">30</div><div class="r-bon">无赠送</div><div class="r-prc">¥30</div></div>
+    <div class="r-item tappable popular" data-amount="68" data-bonus="8"><div class="r-amt">76</div><div class="r-bon">赠送+8</div><div class="r-prc">¥68</div></div>
+    <div class="r-item tappable" data-amount="128" data-bonus="22"><div class="r-amt">150</div><div class="r-bon">赠送+22</div><div class="r-prc">¥128</div></div>
+    <div class="r-item tappable" data-amount="198" data-bonus="42"><div class="r-amt">240</div><div class="r-bon">赠送+42</div><div class="r-prc">¥198</div></div>
+    <div class="r-item tappable" data-amount="328" data-bonus="80"><div class="r-amt">408</div><div class="r-bon">赠送+80</div><div class="r-prc">¥328</div></div>
+    <div class="r-item tappable" data-amount="648" data-bonus="200"><div class="r-amt">848</div><div class="r-bon">赠送+200</div><div class="r-prc">¥648</div></div>
+  </div>
+  <div class="pay-btn tappable" id="btn-pay">确认充值</div>
+  <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px">支持支付宝 · 微信 · 银行卡</div>
+</div></div>
+
+<!-- ══ TEAM ══ -->
+<div id="page-team" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-team">‹</div><div class="page-title">团队信息</div></div>
+  <div class="lg-green team-hero"><div class="team-n">12</div><div class="team-lbl">Active Members</div><div class="team-stats"><div class="tstat"><div class="tstat-n">¥2,840</div><div class="tstat-l">本月营收</div></div><div class="tstat"><div class="tstat-n">97%</div><div class="tstat-l">客户满意度</div></div></div></div>
+  <div class="sec-title">核心成员</div>
+  <div class="lg-dark" style="border-radius:var(--r);padding:0 18px">
+    <div class="mem-row"><div class="mem-av" style="background:rgba(245,200,66,.12)">👑</div><div class="mem-name">JX</div><div class="role role-c">创始人</div></div>
+    <div class="mem-row"><div class="mem-av" style="background:rgba(96,165,250,.10)">💻</div><div class="mem-name">新海</div><div class="role role-d">Java工程师</div></div>
+    <div class="mem-row"><div class="mem-av" style="background:rgba(52,211,153,.08)">🔧</div><div class="mem-name">Ch-Cen</div><div class="role role-o">DevOps</div></div>
+    <div class="mem-row"><div class="mem-av" style="background:rgba(248,113,113,.08)">🎮</div><div class="mem-name">Phantom</div><div class="role role-d">模组开发</div></div>
+  </div>
+  <div class="sec-title">代理招募</div>
+  <div class="lg" style="padding:18px"><div style="font-size:15px;font-weight:700;margin-bottom:8px;color:var(--gold2)">加入我们的代理体系</div><div style="font-size:13px;color:var(--muted);line-height:1.8">品牌信任 · 单单现结 · 稳定收入<br>全网最低卡密价 · 专属推广素材</div><div class="pay-btn tappable" id="btn-apply" style="margin-top:14px;height:46px;font-size:14px">申请成为代理 →</div></div>
+</div></div>
+
+<!-- ══ ORDERS ══ -->
+<div id="page-orders" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-orders">‹</div><div class="page-title">我的订单</div></div>
+  <div id="orders-list"></div>
+  <div id="orders-empty" style="display:none;text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:14px">📭</div>
+    <div style="font-size:16px;font-weight:700;color:var(--muted)">暂无订单</div>
+    <div style="font-size:13px;color:#4a3a4a;margin-top:6px">购买服务后将在此显示</div>
+  </div>
+</div></div>
+
+<!-- ══ INVITE ══ -->
+<div id="page-invite" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-invite">‹</div><div class="page-title">邀请好友</div></div>
+  <div class="lg" style="padding:0;border-color:rgba(167,139,250,.2)"><div class="inv-hero"><div style="font-size:12px;color:var(--muted);letter-spacing:1px">你的专属邀请码</div><div class="inv-code" id="invite-code">TZ-????</div><div style="font-size:13px;color:var(--muted)">每成功邀请1人，双方各得¥5</div></div></div>
+  <div class="inv-stats">
+    <div class="invs"><div class="invs-n">0</div><div class="invs-l">已邀请</div></div>
+    <div class="invs"><div class="invs-n">¥0</div><div class="invs-l">已获奖励</div></div>
+    <div class="invs"><div class="invs-n">¥5</div><div class="invs-l">单次奖励</div></div>
+  </div>
+  <div class="lg copy-btn tappable" id="btn-copy-code" style="border-color:rgba(167,139,250,.22)">📋 复制邀请码</div>
+  <div class="sec-title">分享到</div>
+  <div class="share-grid">
+    <div class="lg shr-item tappable" id="shr-wechat"><div class="shr-ico">💬</div><div class="shr-lbl">微信</div></div>
+    <div class="lg shr-item tappable" id="shr-wechat2"><div class="shr-ico">🟢</div><div class="shr-lbl">微信群</div></div>
+    <div class="lg shr-item tappable" id="shr-qq"><div class="shr-ico">🔵</div><div class="shr-lbl">QQ</div></div>
+    <div class="lg shr-item tappable" id="shr-more"><div class="shr-ico">📱</div><div class="shr-lbl">更多</div></div>
+  </div>
+  <div class="sec-title">规则</div>
+  <div class="lg-dark" style="padding:4px 18px;border-radius:var(--r)">
+    <div class="rule-item"><div class="rule-n">1</div><div class="rule-t">被邀请人通过你的链接注册并完成首次充值，奖励即时到账。</div></div>
+    <div class="rule-item"><div class="rule-n">2</div><div class="rule-t">每个账号仅可被邀请一次，重复邀请不计入奖励。</div></div>
+    <div class="rule-item"><div class="rule-n">3</div><div class="rule-t">奖励余额可直接用于购买所有 TWICEZ 服务，不可提现。</div></div>
+    <div class="rule-item"><div class="rule-n">4</div><div class="rule-t">如发现刷单等违规行为，账号将被永久封禁。</div></div>
+  </div>
+</div></div>
+
+<!-- ══ SETTINGS ══ -->
+<div id="page-settings" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-settings">‹</div><div class="page-title">设置</div></div>
+  <div class="sec-title">通知与反馈</div>
+  <div class="lg-dark" style="border-radius:var(--r)">
+    <div class="tog-row"><div><div class="tog-lbl">系统通知</div><div class="tog-sub">活动、订单状态推送</div></div><div class="toggle on tappable" id="tog-notif"><div class="toggle-k"></div></div></div>
+    <div class="tog-row"><div><div class="tog-lbl">声音反馈</div><div class="tog-sub">按键音效</div></div><div class="toggle on tappable" id="tog-sound"><div class="toggle-k"></div></div></div>
+    <div class="tog-row"><div><div class="tog-lbl">震动反馈</div><div class="tog-sub">触感反馈（需设备支持）</div></div><div class="toggle on tappable" id="tog-vib"><div class="toggle-k"></div></div></div>
+  </div>
+  <div class="sec-title">隐私</div>
+  <div class="lg-dark" style="border-radius:var(--r)">
+    <div class="tog-row"><div><div class="tog-lbl">隐藏余额</div><div class="tog-sub">在主页用 *** 代替余额显示</div></div><div class="toggle off tappable" id="tog-hide"><div class="toggle-k"></div></div></div>
+    <div class="tog-row"><div><div class="tog-lbl">隐身模式</div><div class="tog-sub">对其他成员隐藏在线状态</div></div><div class="toggle off tappable" id="tog-stealth"><div class="toggle-k"></div></div></div>
+  </div>
+  <div class="sec-title">账户安全</div>
+  <div class="lg-dark menu-list">
+    <div class="mrow tappable" id="btn-change-pass"><div class="mico" style="background:rgba(248,113,113,.08)">🔑</div><div class="mlbl">修改密码</div><div class="marr">›</div></div>
+    <div class="mrow tappable" id="btn-del-account"><div class="mico" style="background:rgba(255,255,255,.04)">🗑️</div><div class="mlbl" style="color:var(--red)">注销账号</div><div class="marr">›</div></div>
+  </div>
+  <div style="text-align:center;font-size:12px;color:#2a1a2a;margin-top:16px">TWICEZ Zenith v7.0.1 · Build 2026.03</div>
+</div></div>
+
+<!-- ══ ABOUT ══ -->
+<div id="page-about" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-about">‹</div><div class="page-title">关于</div></div>
+  <div class="about-logo"><div class="big">TWICEZ</div><div class="ver">Version 7.0.1</div><div class="sub">zenith zealots</div></div>
+  <div class="lg-dark menu-list">
+    <div class="about-row"><span class="about-k">版本</span><span class="about-v">7.0.1 (2026.03)</span></div>
+    <div class="about-row"><span class="about-k">架构</span><span class="about-v">Zenith Core Engine</span></div>
+    <div class="about-row"><span class="about-k">平台</span><span class="about-v">Android / iOS / Web</span></div>
+    <div class="about-row"><span class="about-k">开发团队</span><span class="about-v">JX & 新海 & Ch-Cen</span></div>
+  </div>
+  <div class="sec-title">法律文件</div>
+  <div class="lg-dark menu-list">
+    <div class="mrow tappable" id="btn-terms"><div class="mlbl">服务条款</div><div class="marr">›</div></div>
+    <div class="mrow tappable" id="btn-privacy"><div class="mlbl">隐私政策</div><div class="marr">›</div></div>
+    <div class="mrow tappable" id="btn-license"><div class="mlbl">开源许可</div><div class="marr">›</div></div>
+  </div>
+  <div class="copyright">© 2026 TWICEZ Zenith Team. All rights reserved.<br>本软件受著作权法保护，未经授权不得复制或分发。</div>
+</div></div>
+
+<!-- ══ POLICY (通用法律页) ══ -->
+<div id="page-policy" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-policy">‹</div><div class="page-title" id="policy-title">条款</div></div>
+  <div class="lg" style="padding:20px 22px"><div class="policy-body" id="policy-body"></div></div>
+</div></div>
+
+<!-- ══ GROUP ══ -->
+<div id="page-group" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-group">‹</div><div class="page-title">官方群</div></div>
+  <div class="lg-blue" style="padding:0;overflow:hidden"><div class="grp-hero"><div class="grp-av-big">👾</div><div style="font-size:20px;font-weight:900;margin-bottom:4px">TWICEZ Zenith 官方群</div><div style="font-size:13px;color:var(--muted)">1,240 名成员 · 活跃社区</div><div class="grp-qr">[ 扫码加群 ]<br><span style="font-size:11px;color:#888;margin-top:4px;display:block">二维码</span></div></div></div>
+  <div class="join-btn tappable" id="btn-join-qq">📱 点击跳转官方QQ群</div>
+  <div class="join-btn tappable" id="btn-join-wechat" style="background:linear-gradient(135deg,#07c160,#06a152);margin-top:10px;box-shadow:0 8px 28px rgba(7,193,96,.4)">💬 点击跳转微信群</div>
+  <div class="sec-title">群规</div>
+  <div class="lg-dark" style="padding:4px 18px;border-radius:var(--r)">
+    <div class="rule-item"><div class="rule-n" style="background:rgba(96,165,250,.12);color:var(--blue)">1</div><div class="rule-t">禁止发布广告、引流内容，违者永久踢出。</div></div>
+    <div class="rule-item"><div class="rule-n" style="background:rgba(96,165,250,.12);color:var(--blue)">2</div><div class="rule-t">尊重他人，禁止辱骂、人身攻击。</div></div>
+    <div class="rule-item"><div class="rule-n" style="background:rgba(96,165,250,.12);color:var(--blue)">3</div><div class="rule-t">本群仅限 TWICEZ 用户交流，禁止转让账号。</div></div>
+    <div class="rule-item"><div class="rule-n" style="background:rgba(96,165,250,.12);color:var(--blue)">4</div><div class="rule-t">技术问题请 @管理员，勿刷屏求助。</div></div>
+  </div>
+</div></div>
+
+<!-- ══ TOOLS ══ -->
+<div id="page-tools" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-tools">‹</div><div class="page-title">大佬工具包</div></div>
+  <div class="lg-green" style="padding:20px"><div style="display:flex;align-items:center;gap:14px"><div style="font-size:50px;filter:drop-shadow(0 0 14px rgba(52,211,153,.3))">🐷</div><div><div style="color:var(--green);font-size:22px;font-weight:900">大佬工具包 🟢</div><div style="font-size:12px;color:#2a6040;margin-top:3px">持续更新 · 永久免费</div></div></div></div>
+  <div class="sec-title">工具列表</div>
+  <div class="lg-dark" style="padding:0 18px;border-radius:var(--r)">
+    <div class="tool-item"><div class="tool-ico" style="background:rgba(248,113,113,.08)">📱</div><div><div class="tool-name">短信轰炸 Pro</div><div class="tool-dsc">高压短信测压，最新16e社工接口</div></div><div class="tool-st t-free">免费</div></div>
+    <div class="tool-item"><div class="tool-ico" style="background:rgba(96,165,250,.08)">📍</div><div><div class="tool-name">IP 探针定位</div><div class="tool-dsc">精准归属地查询，支持批量</div></div><div class="tool-st t-free">免费</div></div>
+    <div class="tool-item"><div class="tool-ico" style="background:rgba(167,139,250,.10)">🔍</div><div><div class="tool-name">社工信息查询</div><div class="tool-dsc">多维度整合，16e数据源</div></div><div class="tool-st t-free">免费</div></div>
+    <div class="tool-item"><div class="tool-ico" style="background:rgba(245,200,66,.08)">🛡️</div><div><div class="tool-name">反追踪防护</div><div class="tool-dsc">隐藏真实IP · 流量加密</div></div><div class="tool-st t-vip">VIP</div></div>
+  </div>
+  <div class="dl-btn tappable" id="btn-dl-tools">⬇ 立即免费领取</div>
+</div></div>
+
+<!-- ══ PROMO ══ -->
+<div id="page-promo" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-promo">‹</div><div class="page-title">限时活动</div></div>
+  <div class="lg-gold" style="padding:22px 20px"><div style="display:flex;align-items:center;gap:16px;margin-bottom:16px"><div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center">
+  <svg width="56" height="56" viewBox="0 0 64 64" fill="none">
+    <line x1="8" y1="56" x2="52" y2="12" stroke="#d4a040" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M52 12 L38 14 L50 26 Z" fill="#f5c842"/>
+    <path d="M8 56 L10 48 L16 54 Z" fill="#c8902a" opacity="0.7"/>
+    <line x1="44" y1="20" x2="38" y2="14" stroke="#f5c842" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>
+</div><div><div style="font-size:20px;font-weight:900;color:var(--gold2)">全网APP代理</div><div style="font-size:13px;color:#7a5830;margin-top:3px">2026 限时开放名额</div></div></div><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px"><span style="font-size:38px;font-weight:900;color:var(--gold2)">¥37</span><span style="font-size:14px;color:#5a3820;text-decoration:line-through">¥120.00</span><span class="badge-red">69折</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:rgba(0,0,0,.2);border-radius:12px;padding:10px 12px;border:1px solid rgba(255,255,255,.06)"><div style="font-size:11px;color:var(--muted)">剩余名额</div><div style="font-size:15px;font-weight:800;color:var(--gold2);margin-top:2px">仅剩7席</div></div><div style="background:rgba(0,0,0,.2);border-radius:12px;padding:10px 12px;border:1px solid rgba(255,255,255,.06)"><div style="font-size:11px;color:var(--muted)">截止时间</div><div style="font-size:15px;font-weight:800;color:var(--red);margin-top:2px">72小时后</div></div></div></div>
+  <div class="sec-title">代理权益</div>
+  <div class="lg-dark" style="padding:4px 18px;border-radius:var(--r)">
+    <div class="ben-item"><div class="ben-ico">💰</div><div class="ben-txt"><b>单单现结</b>，无需等待，实时到账</div></div>
+    <div class="ben-item"><div class="ben-ico">🏷️</div><div class="ben-txt"><b>全网最低卡密价</b>，利润空间最大</div></div>
+    <div class="ben-item"><div class="ben-ico">📊</div><div class="ben-txt">专属<b>数据后台</b>，实时查看销售</div></div>
+    <div class="ben-item"><div class="ben-ico">🎯</div><div class="ben-txt">官方提供<b>推广素材</b></div></div>
+    <div class="ben-item"><div class="ben-ico">🤝</div><div class="ben-txt"><b>1对1专属客服</b>全程协助出单</div></div>
+  </div>
+  <div class="pay-btn tappable" id="btn-buy-promo">¥37 立即购买代理席位</div>
+</div></div>
+
+<!-- ══ DEV ══ -->
+<div id="page-dev" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-dev">‹</div><div class="page-title">开发团队</div></div>
+  <div class="lg-gold" style="padding:28px 20px;text-align:center"><div class="dev-logo" style="margin:0 auto 14px">
+<svg width="54" height="54" viewBox="0 0 54 54" fill="none">
+  <ellipse cx="27" cy="27" rx="16" ry="8" stroke="#111" stroke-width="3" fill="none"/>
+  <path d="M11 27 Q11 14 27 14 Q43 14 43 27" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M43 27 Q43 40 27 40 Q11 40 11 27" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M19 22 Q27 19 35 22" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <ellipse cx="27" cy="27" rx="4" ry="2" fill="#111" opacity="0.15"/>
+</svg>
+</div><div style="font-size:22px;font-weight:900;color:var(--gold2);margin-bottom:4px">TWICEZ 开发团队</div><div style="font-size:13px;color:var(--muted)">专注 Minecraft 生态 · 2024 成立</div></div>
+  <div class="sec-title">核心成员</div>
+  <div class="lg-dark menu-list">
+    <div class="mrow"><div class="mico" style="background:rgba(245,200,66,.10)">👑</div><div style="flex:1"><div class="mlbl">JX</div><div style="font-size:12px;color:var(--muted)">创始人 · 网易模组开发者</div></div><div class="role role-c">Creator</div></div>
+    <div class="mrow"><div class="mico" style="background:rgba(96,165,250,.10)">☕</div><div style="flex:1"><div class="mlbl">新海</div><div style="font-size:12px;color:var(--muted)">资深 Java 工程师</div></div><div class="role role-d">Dev</div></div>
+    <div class="mrow"><div class="mico" style="background:rgba(52,211,153,.08)">🔧</div><div style="flex:1"><div class="mlbl">Ch-Cen</div><div style="font-size:12px;color:var(--muted)">DevOps 工程师</div></div><div class="role role-o">Ops</div></div>
+    <div class="mrow" style="border-bottom:none"><div class="mico" style="background:rgba(248,113,113,.08)">🎮</div><div style="flex:1"><div class="mlbl">Phantom</div><div style="font-size:12px;color:var(--muted)">模组开发</div></div><div class="role role-d">Dev</div></div>
+  </div>
+  <div class="sec-title">产品历程</div>
+  <div class="lg-dark" style="padding:4px 18px;border-radius:var(--r)">
+    <div class="tl-item"><div class="tl-dot" style="background:rgba(245,200,66,.12);color:var(--gold2)">7</div><div><div class="tl-ttl" style="color:var(--gold2)">2026.03 · v7.0</div><div class="tl-dsc">全新 Zenith Core 引擎，稳定性大幅提升</div></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:rgba(96,165,250,.10);color:var(--blue)">6</div><div><div class="tl-ttl" style="color:var(--blue)">2025.09 · v6.0</div><div class="tl-dsc">IP探针 & 短信模块，用户破5000</div></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:rgba(52,211,153,.08);color:var(--green)">1</div><div><div class="tl-ttl" style="color:var(--green)">2024.06 · v1.0</div><div class="tl-dsc">TWICEZ 正式成立，初版工具包发布</div></div></div>
+  </div>
+</div></div>
+
+<!-- ══ APPLY ══ -->
+<div id="page-apply" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-apply">‹</div><div class="page-title">申请代理</div></div>
+  <div class="lg-gold" style="padding:22px 20px"><div style="font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:8px">💼 代理申请</div><div style="font-size:19px;font-weight:900;color:var(--gold3);margin-bottom:5px">加入 TWICEZ 代理体系</div><div style="font-size:12px;color:#7a6030">审核通过后 24 小时内联系您</div></div>
+  <div class="sec-title">填写申请</div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <input class="inp-field" placeholder="您的 QQ / 微信号" type="text">
+    <input class="inp-field" placeholder="每日可推广人数（预估）" type="number">
+    <input class="inp-field" placeholder="推广渠道（抖音/群聊/朋友圈等）" type="text">
+    <textarea class="inp-field" rows="4" placeholder="简单介绍您自己和推广计划..."></textarea>
+  </div>
+  <div class="pay-btn tappable" id="btn-submit-apply" style="margin-top:6px">提交申请</div>
+</div></div>
+
+<!-- ══ FORUM ══ -->
+<div id="page-news" class="page"><div class="container">
+  <div class="home-hdr" style="padding:18px 4px 12px;display:flex;align-items:center;justify-content:space-between">
+    <div><div class="logo" style="font-size:20px;letter-spacing:2px">TWICEZ 论坛</div><div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:2px">COMMUNITY BOARD</div></div>
+    <div class="tappable" id="btn-new-post" style="background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a0800;font-size:12px;font-weight:800;padding:8px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(200,150,10,.35)">✏️ 发帖</div>
+  </div>
+  <!-- 分类筛选 -->
+  <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none">
+    <div class="forum-tab active tappable" data-cat="all">全部</div>
+    <div class="forum-tab tappable" data-cat="系统通知">通知</div>
+    <div class="forum-tab tappable" data-cat="社区指南">攻略</div>
+    <div class="forum-tab tappable" data-cat="活动公告">活动</div>
+    <div class="forum-tab tappable" data-cat="技术干货">技术</div>
+    <div class="forum-tab tappable" data-cat="版本更新">更新</div>
+    <div class="forum-tab tappable" data-cat="用户发帖">用户</div>
+  </div>
+  <div id="forum-list" style="display:flex;flex-direction:column;gap:10px"></div>
+</div></div>
+
+<!-- ══ NEW POST ══ -->
+<div id="page-new-post" class="page"><div class="container">
+  <div class="sub-header"><div class="back-btn tappable" id="back-new-post">‹</div><div class="sub-title">发布帖子</div></div>
+  <div class="glass-dark" style="border-radius:22px;overflow:hidden">
+    <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:1px">标题</div>
+      <input id="post-title" style="background:transparent;border:none;color:#fff;font-size:16px;font-weight:700;outline:none;width:100%;user-select:text;-webkit-user-select:text" placeholder="输入帖子标题..." maxlength="40">
+    </div>
+    <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:1px">分类</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="post-cat-btn active tappable" data-cat="社区指南">攻略</div>
+        <div class="post-cat-btn tappable" data-cat="技术干货">技术</div>
+        <div class="post-cat-btn tappable" data-cat="活动公告">活动</div>
+        <div class="post-cat-btn tappable" data-cat="用户发帖">其他</div>
+      </div>
+    </div>
+    <div style="padding:14px 18px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:1px">正文</div>
+      <textarea id="post-body" style="background:transparent;border:none;color:rgba(255,255,255,.8);font-size:14px;outline:none;width:100%;min-height:160px;resize:none;line-height:1.8;user-select:text;-webkit-user-select:text;font-family:inherit" placeholder="分享你的心得、问题或经验..."></textarea>
+    </div>
+  </div>
+  <div id="post-err" style="color:var(--red);font-size:13px;text-align:center;min-height:18px;margin-top:4px"></div>
+  <div class="pay-btn tappable" id="btn-submit-post" style="background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a0800">发布帖子</div>
+</div></div>
+
+<!-- ══ NEWS DETAIL ══ -->
+<div id="page-news-detail" class="page"><div class="container">
+  <div class="sub-hdr"><div class="back-btn tappable" id="back-nd">‹</div></div>
+  <div class="lg" style="padding:22px 20px"><div class="nd-tag" id="nd-tag"></div><div class="nd-title" id="nd-title"></div><div class="nd-meta" id="nd-meta"></div><div class="nd-body" id="nd-body"></div></div>
+</div></div>
+
+<!-- ORDER DETAIL -->
+<div id="page-ord-detail" class="page"><div class="container">
+  <div class="sub-header"><div class="back-btn tappable" id="back-ord-detail">‹</div><div class="sub-title">订单详情</div></div>
+  <div class="glass-gold" style="padding:28px 20px;text-align:center;position:relative;overflow:hidden">
+    <div id="od-icon" style="font-size:54px;margin-bottom:14px;filter:drop-shadow(0 4px 16px rgba(0,0,0,.4))"></div>
+    <div id="od-name" style="font-size:18px;font-weight:800;margin-bottom:8px;color:#f0e8d0"></div>
+    <div id="od-amount" style="font-size:44px;font-weight:900;color:var(--gold2);letter-spacing:-2px;line-height:1"></div>
+    <div style="font-size:11px;color:#7a6030;margin-top:6px">实际支付金额</div>
+  </div>
+  <div class="glass-dark menu-list" style="border-radius:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055)"><span style="font-size:14px;color:var(--muted)">订单编号</span><span style="font-size:12px;font-weight:600;color:rgba(255,255,255,.6)" id="od-id"></span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055)"><span style="font-size:14px;color:var(--muted)">下单时间</span><span style="font-size:14px;font-weight:600" id="od-date"></span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055)"><span style="font-size:14px;color:var(--muted)">订单状态</span><span style="font-size:14px;font-weight:700;color:var(--green)">✓ 已完成</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px"><span style="font-size:14px;color:var(--muted)">支付方式</span><span style="font-size:14px;font-weight:600">TWICEZ 余额</span></div>
+  </div>
+  <div class="glass" style="padding:16px 18px">
+    <div style="font-size:13px;color:var(--muted);line-height:1.9">如有疑问请联系官方客服，客服将在工作时间（9:00-22:00）内为您处理。</div>
+  </div>
+</div></div>
+
+</div><!-- /viewport -->
+
+<!-- NAV -->
+<div class="nav-wrap">
+  <div class="nav-bar">
+    <div class="nav-side tappable" id="nav-user"><span class="nav-icon" id="nav-icon-user">👤</span></div>
+    <div class="nav-center-col"><div class="nav-star tappable" id="nav-home">⭐</div></div>
+    <div class="nav-side tappable" id="nav-news"><span class="nav-icon" id="nav-icon-news">📋</span></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-extra"></div>
+    <div class="modal-body-t" id="modal-body"></div>
+    <div class="pay-btn tappable" id="modal-confirm">确认</div>
+    <div style="height:10px"></div>
+    <div class="modal-cancel tappable" id="modal-cancel">取消</div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// AUDIO — zero latency by pre-warming pipeline
+// ══════════════════════════════════════════════
+let ac=null, soundOn=true, vibOn=true;
+function initAudio(){
+  if(ac){if(ac.state==='suspended')ac.resume();return;}
+  try{
+    ac=new(window.AudioContext||window.webkitAudioContext)();
+    const b=ac.createBuffer(1,1,22050),s=ac.createBufferSource();
+    s.buffer=b;s.connect(ac.destination);s.start(0);
+  }catch(e){}
+}
+try{initAudio();}catch(e){}
+document.addEventListener('touchstart',initAudio,{passive:true});
+
+function playTick(){
+  if(!ac||!soundOn)return;
+  try{
+    if(ac.state==='suspended'){ac.resume();return;}
+    const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(1100,t);o.frequency.exponentialRampToValueAtTime(700,t+.025);
+    g.gain.setValueAtTime(.11,t);g.gain.exponentialRampToValueAtTime(.0001,t+.055);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.06);
+  }catch(e){}
+}
+function vib(ms){try{if(vibOn&&navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
+
+// ══════════════════════════════════════════════
+// SCROLL ENGINE
+// ══════════════════════════════════════════════
+const vp=document.getElementById('viewport');
+let curY=0,vel=0,touching=false;
+(function loop(){
+  if(!touching){
+    const lim=Math.min(0,window.innerHeight-vp.offsetHeight);
+    if(curY>0){vel+=-curY*.26;vel*=.58;}
+    else if(curY<lim){vel+=(lim-curY)*.26;vel*=.58;}
+    else vel*=.90;
+    if(Math.abs(vel)<.05)vel=0;
+    curY+=vel;
+  }
+  vp.style.transform=`translate3d(0,${curY}px,0)`;
+  requestAnimationFrame(loop);
+})();
+
+// ══════════════════════════════════════════════
+// TOUCH SYSTEM
+// ══════════════════════════════════════════════
+let tSY=0,tSX=0,tLY=0,scrolling=false,activeEl=null;
+window.addEventListener('touchstart',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  initAudio();touching=true;vel=0;scrolling=false;activeEl=null;
+  tSY=tLY=e.touches[0].pageY;tSX=e.touches[0].pageX;
+},{passive:true});
+window.addEventListener('touchmove',e=>{
+  if(!touching)return;
+  const cy=e.touches[0].pageY,cx=e.touches[0].pageX,dy=cy-tLY;
+  if(!scrolling&&(Math.abs(cy-tSY)>7||Math.abs(cx-tSX)>7)){
+    scrolling=true;
+    if(activeEl){activeEl.classList.remove('tap-down');activeEl=null;}
+  }
+  const lim=Math.min(0,window.innerHeight-vp.offsetHeight);
+  const r=(curY>0&&dy>0)||(curY<lim&&dy<0)?.24:1;
+  curY+=dy*r;vel=dy;tLY=cy;e.preventDefault();
+},{passive:false});
+window.addEventListener('touchend',()=>{touching=false;});
+window.addEventListener('touchcancel',()=>{touching=false;if(activeEl){activeEl.classList.remove('tap-down');activeEl=null;}});
+
+function bindBtn(el,fn){
+  if(!el)return;
+  el.addEventListener('touchstart',e=>{
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+    if(activeEl&&activeEl!==el)activeEl.classList.remove('tap-down');
+    activeEl=el;el.classList.add('tap-down');
+  },{passive:true});
+  el.addEventListener('touchend',()=>{
+    if(!el.classList.contains('tap-down'))return;
+    el.classList.remove('tap-down');if(activeEl===el)activeEl=null;
+    if(!scrolling){playTick();vib(8);if(fn)fn();}
+  },{passive:true});
+  el.addEventListener('touchcancel',()=>{el.classList.remove('tap-down');if(activeEl===el)activeEl=null;},{passive:true});
+}
+
+// ══════════════════════════════════════════════
+// DATA LAYER — localStorage
+// ══════════════════════════════════════════════
+let DB={}, currentUser=null, userBalance=0, settings={sound:true,vib:true,notif:true,hide:false,stealth:false};
+function saveDB(){try{localStorage.setItem('tz_db',JSON.stringify(DB));}catch(e){}}
+function loadDB(){try{const r=localStorage.getItem('tz_db');if(r)Object.assign(DB,JSON.parse(r));}catch(e){}}
+function saveSession(u){try{localStorage.setItem('tz_sess',u);}catch(e){}}
+function getSession(){try{return localStorage.getItem('tz_sess')||'';}catch(e){return'';}}
+function clearSession(){try{localStorage.removeItem('tz_sess');}catch(e){}}
+
+function getOrders(){return(currentUser&&DB[currentUser]&&DB[currentUser].orders)||[];}
+function addOrder(name,amount,icon){
+  if(!currentUser)return;
+  if(!DB[currentUser].orders)DB[currentUser].orders=[];
+  const id='TZ'+Date.now().toString().slice(-8);
+  DB[currentUser].orders.unshift({id,name,amount,icon,date:new Date().toLocaleDateString('zh-CN'),status:'done'});
+  saveDB();updateOrderUI();
+}
+function updateOrderUI(){
+  const cnt=getOrders().length;
+  const el=document.getElementById('stat-orders');if(el)el.textContent=cnt;
+  const el2=document.getElementById('menu-orders');if(el2)el2.textContent=cnt+'笔';
+}
+
+// ══════════════════════════════════════════════
+// ROUTING
+// ══════════════════════════════════════════════
+let stack=[];
+function showPage(id){
+  vel=0;curY=0;
+  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
+  const t=document.getElementById(id);if(!t)return;
+  t.style.display='block';requestAnimationFrame(()=>t.classList.add('active'));
+  document.getElementById('nav-icon-user').classList.toggle('active',id==='page-user');
+  document.getElementById('nav-icon-news').classList.toggle('active',id==='page-news');
+}
+function nav(id){stack=[];showPage(id);}
+function push(id){const c=document.querySelector('.page.active');if(c)stack.push(c.id);showPage(id);}
+function pop(){showPage(stack.pop()||'page-home');}
+
+// ══════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════
+let modalCb=null;
+function showModal(title,body,btn,cb,extraHTML){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').textContent=body;
+  document.getElementById('modal-confirm').textContent=btn||'确认';
+  document.getElementById('modal-extra').innerHTML=extraHTML||'';
+  document.getElementById('modal-overlay').classList.add('show');
+  // re-bind inputs in extra
+  modalCb=cb;
+}
+bindBtn(document.getElementById('modal-confirm'),()=>{
+  document.getElementById('modal-overlay').classList.remove('show');
+  if(modalCb)modalCb();modalCb=null;
+});
+bindBtn(document.getElementById('modal-cancel'),()=>{
+  document.getElementById('modal-overlay').classList.remove('show');modalCb=null;
+});
+document.getElementById('modal-overlay').addEventListener('touchstart',e=>{
+  if(e.target===document.getElementById('modal-overlay')){document.getElementById('modal-overlay').classList.remove('show');modalCb=null;}
+},{passive:true});
+
+function toast(msg,cb){
+  const d=document.createElement('div');d.className='toast';d.textContent=msg;
+  document.body.appendChild(d);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('show')));
+  setTimeout(()=>{d.classList.remove('show');setTimeout(()=>{d.remove();if(cb)cb();},260);},1400);
+}
+
+// ══════════════════════════════════════════════
+// USER / AUTH
+// ══════════════════════════════════════════════
+function balanceDisplay(){
+  if(settings.hide)return '***';
+  return '¥'+userBalance.toFixed(2);
+}
+function updateBalUI(){
+  const b=balanceDisplay();
+  ['stat-balance','menu-balance','rch-balance'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=b;});
+}
+function renderProfile(){
+  document.getElementById('view-login').style.display='none';
+  document.getElementById('view-register').style.display='none';
+  document.getElementById('view-profile').style.display='block';
+  document.getElementById('profile-name').textContent=currentUser||'—';
+  const ic=document.getElementById('invite-code');
+  if(ic)ic.textContent='TZ-'+(currentUser||'').toUpperCase().slice(0,4).padEnd(4,'X');
+  updateBalUI();updateOrderUI();
+}
+function renderAuth(){
+  document.getElementById('view-login').style.display='block';
+  document.getElementById('view-register').style.display='none';
+  document.getElementById('view-profile').style.display='none';
+}
+function toggleAuth(v){
+  document.getElementById('view-login').style.display=v==='login'?'block':'none';
+  document.getElementById('view-register').style.display=v==='register'?'block':'none';
+  ['login-error','reg-error'].forEach(id=>document.getElementById(id).textContent='');
+  curY=0;vel=0;
+}
+function showErr(el,msg){el.style.opacity='0';el.textContent=msg;requestAnimationFrame(()=>el.style.opacity='1');vib([6,60,6]);}
+
+function doLogin(){
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-error');
+  if(!u||!p){showErr(err,'账号和密码不能为空');return;}
+  if(!DB[u]){showErr(err,'账号不存在，请先注册');return;}
+  if(DB[u].pass!==p){showErr(err,'密码错误，请重试');return;}
+  currentUser=u;userBalance=DB[u].balance||0;
+  saveSession(u);renderProfile();toast('欢迎回来，'+u+' 👋');
+}
+function doRegister(){
+  const u=document.getElementById('reg-user').value.trim();
+  const p=document.getElementById('reg-pass').value;
+  const err=document.getElementById('reg-error');
+  if(!u){showErr(err,'账号不能为空');return;}
+  if(p.length<6){showErr(err,'密码至少需要6位');return;}
+  if(DB[u]){showErr(err,'账号已存在');return;}
+  DB[u]={pass:p,balance:0,orders:[]};saveDB();
+  err.style.color='#34d399';err.style.opacity='1';err.textContent='注册成功！';
+  setTimeout(()=>{err.textContent='';err.style.color='var(--red)';toggleAuth('login');},900);
+}
+function doLogout(){
+  showModal('确认退出','退出后需要重新登录才能访问个人数据','退出登录',()=>{
+    currentUser=null;userBalance=0;clearSession();renderAuth();toast('已退出登录');
+  });
+}
+
+// ══════════════════════════════════════════════
+// SETTINGS — real effects
+// ══════════════════════════════════════════════
+function setToggle(id,initial,onChange){
+  const el=document.getElementById(id);if(!el)return;
+  if(!initial){el.classList.remove('on');el.classList.add('off');}
+  bindBtn(el,()=>{
+    const isOn=el.classList.contains('on');
+    el.classList.toggle('on',!isOn);el.classList.toggle('off',isOn);
+    onChange(!isOn);
+  });
+}
+setToggle('tog-sound',true,v=>{soundOn=v;settings.sound=v;toast(v?'声音已开启':'声音已关闭');});
+setToggle('tog-vib',true,v=>{vibOn=v;settings.vib=v;if(v)navigator.vibrate&&navigator.vibrate(12);toast(v?'震动已开启':'震动已关闭');});
+setToggle('tog-notif',true,v=>{settings.notif=v;});
+setToggle('tog-hide',false,v=>{
+  settings.hide=v;updateBalUI();
+  toast(v?'余额已隐藏':'余额已显示');
+});
+setToggle('tog-stealth',false,v=>{settings.stealth=v;toast(v?'隐身模式已开启':'隐身模式已关闭');});
+
+// Change password
+bindBtn(document.getElementById('btn-change-pass'),()=>{
+  if(!currentUser){toast('请先登录');return;}
+  showModal('修改密码','','确认修改',()=>{
+    const np=document.getElementById('new-pass-input');
+    const cp=document.getElementById('confirm-pass-input');
+    if(!np||!cp)return;
+    if(np.value.length<6){toast('新密码至少6位');return;}
+    if(np.value!==cp.value){toast('两次密码不一致');return;}
+    DB[currentUser].pass=np.value;saveDB();toast('密码修改成功 ✓');
+  },'<input id="new-pass-input" class="modal-input" type="password" placeholder="新密码（至少6位）"><input id="confirm-pass-input" class="modal-input" type="password" placeholder="确认新密码">');
+});
+
+// Delete account
+bindBtn(document.getElementById('btn-del-account'),()=>{
+  if(!currentUser){toast('请先登录');return;}
+  showModal('注销账号','注销后账号数据将永久删除，余额清零，不可恢复。确认继续？','确认注销',()=>{
+    delete DB[currentUser];saveDB();
+    currentUser=null;userBalance=0;clearSession();renderAuth();
+    nav('page-user');toast('账号已注销');
+  });
+});
+
+// ══════════════════════════════════════════════
+// RECHARGE
+// ══════════════════════════════════════════════
+let selAmt=0,selCredit=0;
+document.querySelectorAll('.r-item').forEach(item=>{
+  bindBtn(item,()=>{
+    document.querySelectorAll('.r-item').forEach(i=>i.classList.remove('selected'));
+    item.classList.add('selected');
+    selAmt=parseInt(item.dataset.amount);
+    selCredit=selAmt+parseInt(item.dataset.bonus||0);
+  });
+});
+function doPay(){
+  if(!selCredit){toast('请先选择充值面额');return;}
+  if(!currentUser){toast('请先登录');nav('page-user');return;}
+  showModal('确认充值','支付 ¥'+selAmt+'，到账 ¥'+selCredit,'确认支付 ¥'+selAmt,()=>{
+    DB[currentUser].balance=(DB[currentUser].balance||0)+selCredit;
+    userBalance=DB[currentUser].balance;saveDB();updateBalUI();
+    addOrder('余额充值 ¥'+selCredit,selAmt,'💰');
+    const c=selCredit;
+    document.querySelectorAll('.r-item').forEach(i=>i.classList.remove('selected'));
+    selAmt=0;selCredit=0;
+    toast('充值成功，到账 ¥'+c,()=>pop());
+  });
+}
+
+// ══════════════════════════════════════════════
+// ORDERS — real data
+// ══════════════════════════════════════════════
+function renderOrders(){
+  const list=document.getElementById('orders-list');
+  const empty=document.getElementById('orders-empty');
+  if(!list)return;
+  const orders=getOrders();
+  list.innerHTML='';
+  if(orders.length===0){empty.style.display='block';return;}
+  empty.style.display='none';
+  orders.forEach(o=>{
+    const el=document.createElement('div');
+    el.className='lg order-item tappable';
+    el.style.cursor='pointer';
+    el.innerHTML=`<div class="ord-ico" style="background:rgba(245,200,66,.10)">${o.icon||'📦'}</div><div style="flex:1"><div class="ord-name">${o.name}</div><div class="ord-date">${o.date} · ${o.id}</div><span class="ord-st s-done">已完成</span></div><div class="ord-amt" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">¥${o.amount}<span style="font-size:11px;color:rgba(255,255,255,.25)">›</span></div>`;
+    bindBtn(el,()=>showOrderDetail(o));
+    list.appendChild(el);
+  });
+}
+
+// ══════════════════════════════════════════════
+// SHARING / JUMP — real URL schemes
+// ══════════════════════════════════════════════
+bindBtn(document.getElementById('shr-wechat'),()=>{
+  const code=document.getElementById('invite-code')?.textContent||'';
+  if(navigator.share){
+    navigator.share({title:'TWICEZ',text:'我的邀请码：'+code+'，加入即送¥5！',url:location.href})
+    .then(()=>toast('分享成功 ✓'))
+    .catch(()=>{
+      if(navigator.clipboard)navigator.clipboard.writeText(code).then(()=>toast('邀请码已复制，请在微信中粘贴 ✓'));
+      else toast('邀请码：'+code);
+    });
+  } else {
+    // 尝试微信协议
+    const wxUrl='weixin://';
+    window.location.href=wxUrl;
+    setTimeout(()=>{
+      if(navigator.clipboard)navigator.clipboard.writeText(code).then(()=>toast('邀请码已复制 ✓，请打开微信粘贴'));
+      else toast('请复制邀请码后打开微信：'+code);
+    },800);
+  }
+});
+bindBtn(document.getElementById('shr-wechat2'),()=>{
+  toast('请复制邀请码后，发送至微信群 🟢');
+});
+bindBtn(document.getElementById('shr-qq'),()=>{
+  const code=document.getElementById('invite-code')?.textContent||'';
+  // QQ URL scheme
+  const qqScheme='mqq://';
+  const t0=Date.now();
+  window.location.href=qqScheme;
+  setTimeout(()=>{
+    // 如果1.5秒内还在页面说明QQ未安装
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(code).then(()=>toast('邀请码已复制 ✓，请打开QQ粘贴'));
+    } else toast('QQ邀请码：'+code);
+  },1500);
+  toast('正在跳转QQ 🔵');
+});
+bindBtn(document.getElementById('shr-more'),()=>{
+  const code=document.getElementById('invite-code')?.textContent||'TZ-????';
+  if(navigator.share){
+    navigator.share({title:'TWICEZ Zenith',text:`我的邀请码：${code}，加入 TWICEZ Zenith 注册即送 ¥5！`,url:'https://twicez.app'}).catch(()=>{});
+  } else {
+    if(navigator.clipboard){navigator.clipboard.writeText(code).then(()=>toast('邀请码已复制 ✓')).catch(()=>toast('复制失败'));}
+    else toast('请手动复制邀请码');
+  }
+});
+bindBtn(document.getElementById('btn-copy-code'),()=>{
+  const code=document.getElementById('invite-code')?.textContent||'';
+  if(navigator.clipboard){navigator.clipboard.writeText(code).then(()=>{vib(15);toast('邀请码已复制 ✓');}).catch(()=>toast('复制失败'));}
+  else toast('邀请码：'+code);
+});
+bindBtn(document.getElementById('btn-join-qq'),()=>{
+  // Try QQ group join URL scheme
+  window.location.href='mqqapi://card/show_pslcard?src_type=internal&version=1&uin=YOUR_QQ_GROUP&card_type=group&source=external';
+  setTimeout(()=>toast('未检测到QQ，请手动搜索官方群'),1200);
+});
+bindBtn(document.getElementById('btn-join-wechat'),()=>{
+  toast('请截图二维码后，在微信中扫码加群 💬');
+});
+
+// ══════════════════════════════════════════════
+// POLICY PAGES — real content
+// ══════════════════════════════════════════════
+const policies={
+  terms:{title:'服务条款',body:`
+<h3>一、总则</h3>
+<p>欢迎使用 TWICEZ Zenith（以下简称"本软件"）。在使用前，请仔细阅读本服务条款。使用本软件即表示您同意接受本条款约束。</p>
+<h3>二、账户注册</h3>
+<p>您在注册账户时需提供真实有效的信息。您须对账户的所有活动负责，账户不得转让或出售给第三方。</p>
+<h3>三、服务内容</h3>
+<p>本软件提供数字工具包、代理系统及社区服务。所有服务仅限中国大陆地区合法用户使用。我们保留随时修改、中断或终止服务的权利。</p>
+<h3>四、付费与退款</h3>
+<p>充值余额一经入账，概不支持退款。代理席位购买后 24 小时内开通，如因我方原因未能开通，将全额退款。</p>
+<h3>五、禁止行为</h3>
+<p>禁止利用本软件从事任何违法活动。禁止破解、逆向工程或传播本软件。禁止恶意刷单、虚假注册或滥用邀请系统。</p>
+<h3>六、免责声明</h3>
+<p>本软件按"现状"提供，不对任何直接或间接损失承担责任。用户因使用本软件产生的一切法律责任由用户自行承担。</p>
+<h3>七、条款修改</h3>
+<p>我们保留随时修改本条款的权利。修改后的条款将在本软件内公告，继续使用即视为同意新条款。</p>
+<p style="color:#5a4a5a;font-size:12px">最后更新：2026年3月5日</p>`},
+  privacy:{title:'隐私政策',body:`
+<h3>一、信息收集</h3>
+<p>我们收集您在注册时提供的账号信息，以及使用过程中产生的交易记录、设备信息和日志数据。</p>
+<h3>二、信息使用</h3>
+<p>收集的信息用于提供和改善服务、处理交易、防止欺诈、发送服务通知。我们不会将您的个人信息出售给第三方。</p>
+<h3>三、数据存储</h3>
+<p>您的数据存储于会话（Session）中，关闭浏览器后数据将保留在本地缓存。我们不在服务器端长期存储您的密码（已加密处理）。</p>
+<h3>四、Cookie 与本地存储</h3>
+<p>本软件使用 localStorage 存储登录状态和用户数据，不使用跨站追踪 Cookie。</p>
+<h3>五、用户权利</h3>
+<p>您可以随时通过"注销账号"功能删除所有账户数据。如需数据导出，请联系官方客服。</p>
+<h3>六、联系我们</h3>
+<p>如对本隐私政策有任何疑问，请通过官方群联系我们。</p>
+<p style="color:#5a4a5a;font-size:12px">最后更新：2026年3月5日</p>`},
+  license:{title:'开源许可',body:`
+<h3>第三方开源组件</h3>
+<p>本软件使用了以下开源技术：</p>
+<h3>Web APIs</h3>
+<p>本软件基于标准 Web APIs 构建，包括 Web Audio API（MIT 等效许可）、Vibration API（W3C 标准）、Web Share API（W3C 标准）。</p>
+<h3>字体</h3>
+<p>界面使用系统字体 -apple-system / PingFang SC，遵循各平台字体使用协议。</p>
+<h3>TWICEZ 专有代码</h3>
+<p>除上述开源组件外，本软件其余代码及设计均为 TWICEZ 团队专有版权，保留所有权利。</p>
+<p style="color:#5a4a5a;font-size:12px">© 2026 TWICEZ Zenith Team</p>`}
+};
+
+bindBtn(document.getElementById('btn-terms'),()=>{
+  document.getElementById('policy-title').textContent=policies.terms.title;
+  document.getElementById('policy-body').innerHTML=policies.terms.body;
+  push('page-policy');
+});
+bindBtn(document.getElementById('btn-privacy'),()=>{
+  document.getElementById('policy-title').textContent=policies.privacy.title;
+  document.getElementById('policy-body').innerHTML=policies.privacy.body;
+  push('page-policy');
+});
+bindBtn(document.getElementById('btn-license'),()=>{
+  document.getElementById('policy-title').textContent=policies.license.title;
+  document.getElementById('policy-body').innerHTML=policies.license.body;
+  push('page-policy');
+});
+bindBtn(document.getElementById('back-policy'),pop);
+
+// ══════════════════════════════════════════════
+// NEWS — 23 articles
+// ══════════════════════════════════════════════
+const newsData=[
+  {tag:'系统通知',time:'刚刚',title:'TWICEZ 8.0 核心引擎压测开始',preview:'全新自研架构，特征隐藏能力提升 300%...',body:`<p>TWICEZ 团队宣布，全新的 Zenith 8.0 核心引擎已进入内测压测阶段。</p><div class="hl">本次更新引入全新的流量混淆算法，特征隐藏能力提升 300%，已通过最新系统防护检测。</div><p>预计正式版将于 2026 年 Q2 发布，届时所有用户将免费升级。</p>`},
+  {tag:'行业快讯',time:'2小时前',title:'2026 移动端加固新标准发布',preview:'工信部发布新标准，TWICEZ 已提前适配...',body:`<p>工信部今日正式发布 2026 年移动端应用安全加固新标准。</p><div class="hl">TWICEZ 7.0 已提前完成全部合规适配，用户可放心使用。</div><p>我们的技术团队已在最新版本中同步更新了相关模块。</p>`},
+  {tag:'社区指南',time:'昨天',title:'代理商月入过万的实战经验',preview:'顶级代理「Alpha」分享精准营销心得...',body:`<p>本期采访了顶级代理商「Alpha」，分享月入过万的实战经验。</p><div class="hl">核心策略：精准人群定位 + 持续内容输出 + 快速响应客户。</div><p>Alpha 每天花 2 小时维护 3 个核心群，月均新增用户 80+，转化率 35%。</p>`},
+  {tag:'版本更新',time:'3天前',title:'v7.0.1 热修复发布',preview:'修复若干已知问题，优化性能...',body:`<p>本次更新修复了以下问题：</p><p>• 修复偶发的登录态丢失问题<br>• 优化充值页面加载速度<br>• 修复邀请码复制在部分设备上失效的问题</p><div class="hl">建议所有用户立即更新至最新版本。</div>`},
+  {tag:'活动公告',time:'4天前',title:'三月限时代理优惠来袭',preview:'代理席位直降至 ¥37，3月31日截止...',body:`<p>为庆祝 TWICEZ 用户突破 10,000 大关，三月全月代理席位特惠开启。</p><div class="hl">原价 ¥120 的代理席位，三月限定 ¥37，优惠直降 69%。</div><p>名额有限，先到先得，截止 2026 年 3 月 31 日。</p>`},
+  {tag:'技术干货',time:'5天前',title:'如何识别和规避流量特征',preview:'深度解析主流检测机制的工作原理...',body:`<p>本文深入解析当前主流平台的流量特征检测机制。</p><div class="hl">核心原理：基于行为序列建模 + 设备指纹 + 网络拓扑三重分析。</div><p>TWICEZ 7.0 通过引入随机化行为插入和动态指纹混淆，已有效规避上述检测。</p>`},
+  {tag:'社区指南',time:'6天前',title:'新手代理完整入门指南',preview:'从零到一，手把手教你做代理...',body:`<p>本文专为刚加入 TWICEZ 代理体系的新手编写。</p><p>第一步：了解产品，熟悉所有工具的功能和卖点。<br>第二步：确定目标群体，找准潜在用户聚集的渠道。<br>第三步：建立信任，通过免费工具吸引用户关注。</p><div class="hl">记住：销售的本质是解决问题，而不是强推产品。</div>`},
+  {tag:'系统通知',time:'1周前',title:'服务器迁移完成公告',preview:'全线迁移至新机房，延迟降低 40%...',body:`<p>TWICEZ 已于本周完成全线服务器迁移工作。</p><div class="hl">迁移后平均响应延迟降低 40%，稳定性从 99.2% 提升至 99.8%。</div><p>感谢各位用户在迁移期间的耐心等待。新机房位于华东地区，覆盖全国用户。</p>`},
+  {tag:'行业快讯',time:'1周前',title:'Minecraft 网易版 2026 更新解析',preview:'新版本对第三方模组的影响分析...',body:`<p>网易 Minecraft 中国版最新更新对第三方模组生态产生了一定影响。</p><div class="hl">TWICEZ 团队已针对新版本完成兼容性测试，所有功能正常运行。</div><p>新版本引入的反外挂机制不影响 TWICEZ 的正常使用。</p>`},
+  {tag:'活动公告',time:'10天前',title:'邀请好友奖励翻倍活动',preview:'3月邀请奖励从¥5提升至¥10...',body:`<p>为感谢社区成员的推广贡献，3 月全月邀请奖励翻倍！</p><div class="hl">每成功邀请 1 名新用户完成首充，双方各获 ¥10 奖励（原 ¥5）。</div><p>活动截止 2026 年 3 月 31 日，奖励将在被邀请人完成首充后立即到账。</p>`},
+  {tag:'技术干货',time:'2周前',title:'短信测压工具使用最佳实践',preview:'合理使用测压工具，避免误触红线...',body:`<p>短信测压工具作为安全测试手段，需要在合法范围内使用。</p><div class="hl">重要提示：测压工具仅限用于测试自己拥有的号码或已获授权的号码。</div><p>建议单次测试不超过 50 条，测试间隔不少于 30 分钟，避免产生不必要的法律风险。</p>`},
+  {tag:'社区指南',time:'2周前',title:'如何搭建高转化率的推广矩阵',preview:'多平台联动，让流量最大化...',body:`<p>成功的推广需要多平台协同。以下是经过验证的推广矩阵搭建方案：</p><p>• 主阵地（QQ群/微信群）：日常维护，建立信任<br>• 引流渠道（抖音/B站/小红书）：内容吸引新用户<br>• 转化漏斗（私信/1v1沟通）：促成最终购买</p><div class="hl">关键是让每个平台的内容形成互补，而不是重复。</div>`},
+  {tag:'版本更新',time:'3周前',title:'IP探针模块 v2.3 更新',preview:'新增批量查询功能，速度提升5倍...',body:`<p>IP 探针定位模块迎来重大更新。</p><div class="hl">新版本支持最多 500 条 IP 批量查询，速度较上一版本提升 5 倍。</div><p>新增功能：ASN 信息查询、运营商识别精度提升至 98%、新增数据中心 IP 标记功能。</p>`},
+  {tag:'系统通知',time:'3周前',title:'账户安全加固措施上线',preview:'新增登录异常检测，保护账户安全...',body:`<p>为保护用户账户安全，TWICEZ 上线了一系列安全加固措施。</p><div class="hl">新增异常登录检测：当账户在新设备登录时，将触发安全验证。</div><p>建议所有用户设置强密码（8位以上，包含数字和字母），并定期修改密码。</p>`},
+  {tag:'行业快讯',time:'1个月前',title:'2026年社工库最新动态',preview:'16e 数据库完成最新扩充...',body:`<p>知名社工数据库 16e 于近期完成了新一轮数据扩充。</p><div class="hl">最新数据集包含超过 2.3 亿条记录，覆盖范围进一步扩大。</div><p>TWICEZ 社工查询模块已对接最新数据源，查询命中率提升约 15%。</p>`},
+  {tag:'活动公告',time:'1个月前',title:'周年庆全系产品特惠',preview:'创立两周年，所有产品五折优惠...',body:`<p>TWICEZ 迎来创立两周年！为感谢所有支持我们的用户，特推出周年庆优惠活动。</p><div class="hl">活动期间，代理席位、VIP 月卡等所有付费产品享受五折优惠。</div><p>活动时间：2026年3月1日至3月7日。机不可失，错过再等一年！</p>`},
+  {tag:'技术干货',time:'1个月前',title:'反追踪防护技术深度解析',preview:'VIP专属功能的核心技术原理...',body:`<p>今天为 VIP 用户深度解析反追踪防护模块的核心技术原理。</p><div class="hl">防护方案基于三层混淆：流量特征随机化 + IP 跳转池 + 时序行为干扰。</div><p>在实际测试中，使用防护模块后，被主流平台识别的概率从约 78% 降低至 3% 以下。</p>`},
+  {tag:'社区指南',time:'1个月前',title:'代理结算指南：如何快速收款',preview:'多种收款方式对比，选择最适合你的...',body:`<p>作为 TWICEZ 代理，选择合适的收款方式非常重要。</p><p>推荐方案：<br>• 微信收款码：门槛最低，适合小额高频<br>• 支付宝商家版：提现手续费更低，适合月结<br>• TWICEZ 余额：最方便，直接在平台内结算</p><div class="hl">建议日流水超过 500 元后，开通支付宝商家版以降低手续费。</div>`},
+  {tag:'版本更新',time:'6周前',title:'v7.0 正式版发布公告',preview:'Zenith Core 引擎全面上线...',body:`<p>经过 3 个月的内测和压测，TWICEZ v7.0 正式版今日正式上线！</p><div class="hl">核心升级：全新 Zenith Core 引擎，性能提升 200%，内存占用降低 40%。</div><p>本次更新为有史以来最大规模的架构升级，感谢所有参与内测的用户提供的宝贵反馈！</p>`},
+  {tag:'系统通知',time:'2个月前',title:'用户突破10000公告',preview:'感谢一万名用户的信任与支持...',body:`<p>TWICEZ 注册用户正式突破 10,000 人！</p><div class="hl">从创立到破万，我们用了不到两年时间。感谢每一位用户的信任与支持！</div><p>为庆祝这一里程碑，所有在突破节点前注册的用户，将获得 ¥10 余额奖励，72 小时内到账。</p>`},
+  {tag:'行业快讯',time:'2个月前',title:'主流平台反外挂机制更新分析',preview:'最新检测机制详解，已完成反制...',body:`<p>多个主流平台于近期更新了反外挂检测机制，引发社区关注。</p><div class="hl">经测试，TWICEZ 7.0 已完全绕过上述新增检测点，无需用户做任何特殊配置。</div><p>我们会持续追踪平台更新动态，确保 TWICEZ 始终处于攻防曲线的前沿。</p>`},
+  {tag:'社区指南',time:'2个月前',title:'如何避免账号被封禁',preview:'分享实战防封技巧...',body:`<p>根据大量实战经验总结，以下行为最容易导致账号被封禁：</p><p>• 短时间内大量操作（频率异常）<br>• 使用已被标记的 IP<br>• 账号行为与正常用户差异过大</p><div class="hl">防封核心：让你的行为看起来和普通用户一样。</div><p>TWICEZ 的随机化模块会自动为你处理大部分防封逻辑。</p>`},
+  {tag:'活动公告',time:'3个月前',title:'春节限定活动回顾',preview:'春节期间充值活动圆满结束...',body:`<p>2026 年春节限定活动已圆满结束，感谢所有参与的用户！</p><div class="hl">活动期间共有 2,340 名用户参与充值，总充值金额突破 30 万元。</div><p>活动中充值额度最高的 TOP10 用户已获得专属限定徽章，将在下个版本中展示。</p>`},
+];
+
+// ─── FORUM SYSTEM ───
+const CAT_STYLE={
+  '系统通知':{cls:'cat-sys',tag:'bg:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2)'},
+  '行业快讯':{cls:'cat-tech',tag:'bg:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.2)'},
+  '社区指南':{cls:'cat-guide',tag:'bg:rgba(52,211,153,.10);color:var(--green);border:1px solid rgba(52,211,153,.18)'},
+  '版本更新':{cls:'cat-update',tag:'bg:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.2)'},
+  '活动公告':{cls:'cat-event',tag:'bg:rgba(245,200,66,.10);color:var(--gold2);border:1px solid rgba(245,200,66,.18)'},
+  '技术干货':{cls:'cat-tech',tag:'bg:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.2)'},
+  '用户发帖':{cls:'cat-user',tag:'bg:rgba(255,255,255,.08);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.12)'},
+};
+
+// 从newsData生成初始帖子
+let forumPosts = newsData.map((n,i)=>({
+  id:'sys_'+i,
+  title:n.title,
+  body:n.body,
+  preview:n.preview,
+  tag:n.tag,
+  author:'TWICEZ官方',
+  time:n.time,
+  views:Math.floor(800+Math.random()*4200),
+  likes:Math.floor(20+Math.random()*380),
+  isOfficial:true,
+  likedBy:[],
+  hot: i<3,
+}));
+
+
+// 模拟用户帖子
+const mockUserPosts = [
+  {id:'u1',title:'求问16e查询返回空是什么原因',body:'<p>最近用社工查询功能，输入手机号一直返回空，其他人也有这个问题吗？是不是数据库没更新？</p><div class="hl">已经试过重启App和换网络了，还是不行。</div>',preview:'输入手机号一直返回空，其他人也有这个问题吗？',tag:'用户发帖',author:'破晓_zZ',time:'30分钟前',views:89,likes:12,isOfficial:false,likedBy:[],hot:false},
+  {id:'u2',title:'代理心得分享：第一个月做了¥2300',body:'<p>入坑一个月，分享下经验。主要靠初中同学群，发了几个截图就有人来问了。</p><div class="hl">关键是不要硬推，先问需求，说"有个工具你可以看看"比直接发广告好用十倍。</div><p>本月转化了9个，客单价均在¥37-68之间，净赚约¥2300。继续加油！</p>',preview:'入坑一个月净赚¥2300，靠同学群软推广，不硬来...',tag:'社区指南',author:'橘猫不吃鱼',time:'1小时前',views:312,likes:67,isOfficial:false,likedBy:[],hot:true},
+  {id:'u3',title:'IP探针能查到基站定位吗',body:'<p>测试了一下IP探针，只显示运营商和城市级别，能精确到基站吗？还是说这个精度是上限了？</p>',preview:'只显示城市级别，能到基站精度吗？',tag:'技术干货',author:'NETW0RK',time:'3小时前',views:156,likes:8,isOfficial:false,likedBy:[],hot:false},
+  {id:'u4',title:'有没有批量查号的教程？',body:'<p>单条查太慢了，有没有人知道怎么批量导入手机号查询？API接口在哪里？</p><div class="hl">最好是能导入txt文件那种。</div>',preview:'单条查太慢，求批量查号教程',tag:'用户发帖',author:'渗透_404',time:'5小时前',views:203,likes:19,isOfficial:false,likedBy:[],hot:false},
+  {id:'u5',title:'新手问：充值后怎么开通代理权限',body:'<p>我刚买了代理席位，付款后页面跳到首页了，代理后台在哪里进？没有收到任何消息。</p>',preview:'付款后页面跳回首页，代理后台在哪？',tag:'用户发帖',author:'小白兔2026',time:'昨天',views:445,likes:3,isOfficial:false,likedBy:[],hot:false},
+  {id:'u6',title:'短信测压频率多少合适不封号',body:'<p>用短信压测的时候，发多快会被风控？目前我设的是每分钟20条，已经跑了2小时没封。</p><div class="hl">有大佬测过极限吗？</div>',preview:'每分钟发多少条不会被风控？求经验',tag:'技术干货',author:'freq_tester',time:'昨天',views:678,likes:44,isOfficial:false,likedBy:[],hot:true},
+  {id:'u7',title:'朋友圈推广话术分享（亲测有效）',body:'<p>整理了几条效果不错的朋友圈文案，大家自取：</p><div class="hl">「最近在用一个工具，朋友的信息查了一下全出来了，有点细思极恐」</div><p>配上截图，这条发完当天来了5个问的。不要直接说是付费工具，先勾起好奇心。</p>',preview:'朋友圈话术：先勾好奇心再说工具，当天来5个询问',tag:'社区指南',author:'流量密码_yy',time:'2天前',views:891,likes:132,isOfficial:false,likedBy:[],hot:true},
+  {id:'u8',title:'v7.0登录老是掉，是BUG吗',body:'<p>最近几天反复出现登录状态丢失，每次重新打开App都要重新登录，很烦。</p>',preview:'登录状态反复丢失，是BUG还是服务器问题？',tag:'用户发帖',author:'用户_8823',time:'3天前',views:334,likes:7,isOfficial:false,likedBy:[],hot:false},
+  {id:'u9',title:'推广用的图怎么做比较吸引人',body:'<p>用美图秀秀做了个对比图，左边放"查之前"右边放"查之后"，转化率很高。</p><div class="hl">素材可以去找16e历史数据里公开的样例，不要用真实用户数据。</div>',preview:'对比图效果好，分享制作思路',tag:'社区指南',author:'设计小能手',time:'3天前',views:567,likes:88,isOfficial:false,likedBy:[],hot:false},
+  {id:'u10',title:'IP探针v2.3更新后精度变高了',body:'<p>今天更新了IP探针到2.3，感觉定位精度明显提升，之前显示省会城市，现在能到区级别了。</p><div class="hl">对于做本地代理的兄弟很友好，推荐更新。</div>',preview:'v2.3更新后精度到区级别了，本地代理必更新',tag:'版本更新',author:'ip_hunter_x',time:'4天前',views:723,likes:95,isOfficial:false,likedBy:[],hot:false},
+];
+
+// 随机插入用户帖子，让论坛看起来是活跃增长的
+mockUserPosts.forEach((p,i)=>{
+  // 随机插入到官方帖之间（不全在最后）
+  const insertAt = Math.min(i*2+1, forumPosts.length);
+  forumPosts.splice(insertAt, 0, p);
+});
+function saveForumPosts(){
+  try{const toSave=forumPosts.filter(p=>!p.isOfficial);localStorage.setItem('tz_forum',JSON.stringify(toSave));}catch(e){}
+}
+function loadForumPosts(){
+  try{
+    const r=localStorage.getItem('tz_forum');
+    if(r){const user=JSON.parse(r);forumPosts=[...forumPosts.filter(p=>p.isOfficial),...user];}
+  }catch(e){}
+}
+
+let currentCat='all';
+let currentPostId=null;
+
+function renderForum(){
+  const list=document.getElementById('forum-list');
+  if(!list)return;
+  const filtered=currentCat==='all'?forumPosts:forumPosts.filter(p=>p.tag===currentCat);
+  list.innerHTML='';
+  filtered.forEach(post=>{
+    const st=CAT_STYLE[post.tag]||CAT_STYLE['用户发帖'];
+    const el=document.createElement('div');
+    el.className='lg forum-card tappable '+st.cls;
+    const tagStyle=st.tag.replace('bg:','background:');
+    el.innerHTML=`
+      <div class="forum-meta">
+        <span class="forum-tag" style="${tagStyle}">${post.tag}</span>
+        <span class="forum-author">${post.isOfficial?'🏮 '+post.author:'👤 '+post.author}</span>
+        ${post.hot?'<span class="forum-hot">HOT</span>':''}
+        <span class="forum-time">${post.time}</span>
+      </div>
+      <div class="forum-title">${post.title}</div>
+      <div class="forum-preview">${post.preview||post.title}</div>
+      <div class="forum-footer">
+        <span class="forum-stat">👁 ${post.views}</span>
+        <span class="forum-stat">❤️ ${post.likes}</span>
+        <span class="forum-stat" style="margin-left:auto;color:rgba(255,255,255,.2)">›</span>
+      </div>`;
+    bindBtn(el,()=>openPost(post.id));
+    list.appendChild(el);
+  });
+}
+
+function openPost(id){
+  const post=forumPosts.find(p=>p.id===id);
+  if(!post)return;
+  currentPostId=id;
+  post.views++;
+  const st=CAT_STYLE[post.tag]||CAT_STYLE['用户发帖'];
+  const tagStyle=st.tag.replace('bg:','background:');
+  const liked=currentUser&&post.likedBy.includes(currentUser);
+  document.getElementById('nd-tag').innerHTML=`<span style="${tagStyle};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800">${post.tag}</span>`;
+  document.getElementById('nd-title').textContent=post.title;
+  document.getElementById('nd-meta').innerHTML=`<span style="color:var(--muted)">by ${post.isOfficial?'🏮 '+post.author:'👤 '+post.author} · ${post.time}</span>`;
+  const bodyEl=document.getElementById('nd-body');
+  bodyEl.innerHTML=(post.body||'<p>'+post.preview+'</p>')+
+    `<div class="forum-like-btn tappable ${liked?'liked':''}" id="like-btn" style="margin-top:18px">
+      ${liked?'❤️':'🤍'} <span id="like-count">${post.likes}</span> 人觉得有帮助
+    </div>`;
+  // bind like — use setTimeout to ensure DOM is ready after push
+  setTimeout(()=>{
+    const likeEl=document.getElementById('like-btn');
+    if(likeEl){
+      bindBtn(likeEl,()=>{
+        if(!currentUser){toast('请先登录后点赞');return;}
+        const p=forumPosts.find(x=>x.id===currentPostId);
+        if(!p)return;
+        const already=p.likedBy.includes(currentUser);
+        if(already){p.likedBy=p.likedBy.filter(u=>u!==currentUser);p.likes=Math.max(0,p.likes-1);}
+        else{p.likedBy.push(currentUser);p.likes++;}
+        saveForumPosts();
+        const nowLiked=p.likedBy.includes(currentUser);
+        const lEl=document.getElementById('like-btn');
+        if(lEl){lEl.className='forum-like-btn tappable '+(nowLiked?'liked':'');lEl.querySelector('#like-count').textContent=p.likes;}
+        vib(10);toast(nowLiked?'已点赞 ❤️':'已取消点赞');
+      });
+    }
+  },100);
+  push('page-news-detail');
+}
+
+// 发帖
+let selectedPostCat='社区指南';
+function initPostCatBtns(){
+  document.querySelectorAll('.post-cat-btn').forEach(btn=>{
+    bindBtn(btn,()=>{
+      document.querySelectorAll('.post-cat-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedPostCat=btn.dataset.cat;
+    });
+  });
+}
+
+function submitPost(){
+  const titleEl=document.getElementById('post-title');
+  const bodyEl2=document.getElementById('post-body');
+  const title=titleEl?titleEl.value.trim():'';
+  const body=bodyEl2?bodyEl2.value.trim():'';
+  const errEl=document.getElementById('post-err');
+  if(!currentUser){if(errEl)errEl.textContent='请先登录再发帖';toast('请先登录');nav('page-user');return;}
+  if(!title){if(errEl)errEl.textContent='标题不能为空';vib([5,40,5]);return;}
+  if(title.length<4){if(errEl)errEl.textContent='标题至少4个字';vib([5,40,5]);return;}
+  if(!body||body.length<10){if(errEl)errEl.textContent='正文至少10个字';vib([5,40,5]);return;}
+  const newPost={
+    id:'usr_'+Date.now(),
+    title,
+    body:'<p>'+body.replace(/\n/g,'</p><p>')+'</p>',
+    preview:body.slice(0,60)+(body.length>60?'...':''),
+    tag:selectedPostCat,
+    author:currentUser,
+    time:'刚刚',
+    views:1,
+    likes:0,
+    isOfficial:false,
+    likedBy:[],
+    hot:false,
+  };
+  forumPosts.unshift(newPost);
+  saveForumPosts();
+  if(errEl)errEl.textContent='';
+  document.getElementById('post-title').value='';
+  document.getElementById('post-body').value='';
+  pop();
+  renderForum();
+  toast('帖子发布成功 ✓');
+}
+
+function buildNewsList(){
+  loadForumPosts();
+  renderForum();
+  // Forum tabs
+  document.querySelectorAll('.forum-tab').forEach(tab=>{
+    bindBtn(tab,()=>{
+      document.querySelectorAll('.forum-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      currentCat=tab.dataset.cat;
+      renderForum();
+    });
+  });
+  // New post btn
+  const npBtn=document.getElementById('btn-new-post');
+  if(npBtn)bindBtn(npBtn,()=>{
+    if(!currentUser){toast('请先登录再发帖');nav('page-user');return;}
+    initPostCatBtns();
+    push('page-new-post');
+  });
+  // Submit post
+  const spBtn=document.getElementById('btn-submit-post');
+  if(spBtn)bindBtn(spBtn,submitPost);
+  // Back
+  const bkPost=document.getElementById('back-new-post');
+  if(bkPost)bindBtn(bkPost,pop);
+}
+
+// ══════════════════════════════════════════════
+// BIND ALL BUTTONS
+// ══════════════════════════════════════════════
+bindBtn(document.getElementById('nav-home'),()=>nav('page-home'));
+bindBtn(document.getElementById('nav-user'),()=>nav('page-user'));
+bindBtn(document.getElementById('nav-news'),()=>nav('page-news'));
+bindBtn(document.getElementById('btn-dev'),()=>push('page-dev'));
+bindBtn(document.getElementById('btn-promo'),()=>push('page-promo'));
+bindBtn(document.getElementById('btn-group'),()=>push('page-group'));
+bindBtn(document.getElementById('btn-tools'),()=>push('page-tools'));
+bindBtn(document.getElementById('btn-login'),doLogin);
+bindBtn(document.getElementById('btn-register'),doRegister);
+bindBtn(document.getElementById('btn-to-reg'),()=>toggleAuth('register'));
+bindBtn(document.getElementById('btn-to-login'),()=>toggleAuth('login'));
+bindBtn(document.getElementById('btn-goto-rch'),()=>push('page-recharge'));
+bindBtn(document.getElementById('btn-goto-rch2'),()=>push('page-recharge'));
+bindBtn(document.getElementById('btn-goto-team'),()=>push('page-team'));
+bindBtn(document.getElementById('btn-goto-orders'),()=>{renderOrders();push('page-orders');});
+bindBtn(document.getElementById('btn-goto-invite'),()=>push('page-invite'));
+bindBtn(document.getElementById('btn-goto-settings'),()=>push('page-settings'));
+bindBtn(document.getElementById('btn-goto-about'),()=>push('page-about'));
+bindBtn(document.getElementById('btn-logout'),doLogout);
+bindBtn(document.getElementById('back-rch'),pop);
+bindBtn(document.getElementById('btn-pay'),doPay);
+bindBtn(document.getElementById('back-team'),pop);
+bindBtn(document.getElementById('btn-apply'),()=>push('page-apply'));
+bindBtn(document.getElementById('back-orders'),pop);
+bindBtn(document.getElementById('back-invite'),pop);
+bindBtn(document.getElementById('back-settings'),pop);
+bindBtn(document.getElementById('back-about'),pop);
+bindBtn(document.getElementById('back-group'),pop);
+bindBtn(document.getElementById('back-tools'),pop);
+bindBtn(document.getElementById('btn-dl-tools'),()=>{
+  if(!currentUser){toast('请先登录');nav('page-user');return;}
+  showModal('确认领取','大佬工具包完全免费，领取后发送至账号邮箱','立即领取',()=>{
+    addOrder('大佬工具包（免费领取）',0,'🐷');
+    toast('领取成功！✓');
+  });
+});
+bindBtn(document.getElementById('back-promo'),pop);
+bindBtn(document.getElementById('btn-buy-promo'),()=>{
+  if(!currentUser){toast('请先登录');nav('page-user');return;}
+  showModal('确认购买','代理席位 ¥37，购买后 24h 内开通','确认支付 ¥37',()=>{
+    if(userBalance<37){toast('余额不足，请先充值');push('page-recharge');return;}
+    DB[currentUser].balance-=37;userBalance=DB[currentUser].balance;saveDB();updateBalUI();
+    addOrder('全网APP代理席位',37,'🏹');
+    toast('购买成功！客服将联系您');
+  });
+});
+bindBtn(document.getElementById('back-dev'),pop);
+bindBtn(document.getElementById('back-apply'),pop);
+bindBtn(document.getElementById('btn-submit-apply'),()=>{
+  showModal('提交成功','审核通过后将通过 QQ/微信 联系您','好的',()=>pop());
+});
+const _bnd2=document.getElementById('back-nd');if(_bnd2)bindBtn(_bnd2,()=>{renderForum();pop();});
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+loadDB();
+const sess=getSession();
+if(sess&&DB[sess]){currentUser=sess;userBalance=DB[sess].balance||0;renderProfile();}
+else renderAuth();
+showPage('page-home');
+buildNewsList();
+</script>
+</body>
+</html>
